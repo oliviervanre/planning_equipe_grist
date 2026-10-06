@@ -54,6 +54,10 @@
       min-width: calc(var(--name-width) + var(--days) * var(--day-width));
       user-select: none;
     }
+    .calendar-grid.compact-names {
+      --name-width: 106px;
+      --day-width: 36px;
+    }
 
     .sticky-name {
       position: sticky;
@@ -68,7 +72,9 @@
       border-bottom: 1px solid var(--line);
       border-right: 1px solid var(--line);
     }
-    .head-name { z-index: 6; padding: 0 1rem; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .head-name { z-index: 6; padding: 0 .85rem; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .name-mode-switch { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: .35rem; }
+    .name-mode-switch .form-check-input { flex: 0 0 auto; margin: 0; cursor: pointer; }
     .day-head { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fafbfc; }
     .day-head .dow { color: var(--muted); font-size: .68rem; font-weight: 800; text-transform: uppercase; }
     .day-head .number { font-size: 1rem; font-weight: 750; }
@@ -81,11 +87,12 @@
       border-bottom: 1px solid var(--line);
       border-right: 1px solid var(--line);
     }
-    .person-name { display: flex; align-items: center; gap: .7rem; padding: .6rem .85rem; }
-    .avatar { display: grid; flex: 0 0 34px; height: 34px; place-items: center; border-radius: 50%; color: #fff; font-size: .72rem; font-weight: 800; }
+    .person-name { display: flex; align-items: center; padding: .6rem .85rem; }
     .person-name .meta { min-width: 0; }
     .person-name .name { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
     .person-name .membership { color: var(--muted); font-size: .67rem; white-space: nowrap; }
+    .calendar-grid.compact-names .person-name { padding-inline: .55rem; }
+    .calendar-grid.compact-names .person-name .membership { display: none; }
 
     .day-cell { position: relative; background: #fff; cursor: crosshair; touch-action: none; }
     .day-cell:hover { outline: 2px solid rgba(13, 110, 253, .35); outline-offset: -2px; z-index: 2; }
@@ -194,4 +201,3 @@
 
 </body>
 </html>
-
