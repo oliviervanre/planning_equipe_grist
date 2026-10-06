@@ -52,6 +52,8 @@
       const nativeMonth = document.querySelector('#nativeMonth');
       const modalElement = document.querySelector('#eventModal');
       const eventModal = new bootstrap.Modal(modalElement);
+      const overviewModal = new bootstrap.Modal(document.querySelector('#overviewModal'));
+      const overviewContent = document.querySelector('#overviewContent');
 
       function uid() {
         return globalThis.crypto?.randomUUID?.() || `e-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -72,9 +74,13 @@
         return isoDate(date);
       }
 
+      function datesForMonth(monthDate) {
+        const lastDay = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
+        return Array.from({ length: lastDay }, (_, index) => new Date(monthDate.getFullYear(), monthDate.getMonth(), index + 1));
+      }
+
       function datesOfMonth() {
-        const lastDay = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() + 1, 0).getDate();
-        return Array.from({ length: lastDay }, (_, index) => new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), index + 1));
+        return datesForMonth(displayedMonth);
       }
 
       function easterSunday(year) {
@@ -225,6 +231,84 @@
           });
         });
         if (!gristMode) saveLocal();
+      }
+
+      function renderOverview() {
+        overviewContent.replaceChildren();
+        const allMembers = [...members, SCHOOL_MEMBER];
+        const todayKey = isoDate(new Date());
+
+        for (let offset = 0; offset < 6; offset += 1) {
+          const overviewMonth = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() + offset, 1);
+          const dates = datesForMonth(overviewMonth);
+          const holidays = holidaysFor(overviewMonth.getFullYear());
+          const monthLast = isoDate(dates[dates.length - 1]);
+          const section = document.createElement('section');
+          section.className = 'overview-month mb-3';
+
+          const title = document.createElement('h3');
+          title.className = 'overview-month-title';
+          title.textContent = monthLabel.format(overviewMonth);
+          section.append(title);
+
+          const scroll = document.createElement('div');
+          scroll.className = 'overview-scroll';
+          const grid = document.createElement('div');
+          grid.className = 'overview-grid';
+          grid.style.setProperty('--days', dates.length);
+
+          const corner = document.createElement('div');
+          corner.className = 'overview-corner';
+          corner.textContent = 'Équipe';
+          grid.append(corner);
+
+          dates.forEach(date => {
+            const key = isoDate(date);
+            const holiday = holidays.get(key);
+            const head = document.createElement('div');
+            head.className = `overview-day-head${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${key === todayKey ? ' today' : ''}`;
+            head.title = holiday ? `${longDate.format(date)} — ${holiday}` : longDate.format(date);
+            head.innerHTML = `<span class="dow">${DAY_INITIALS[date.getDay()]}</span><span class="number">${date.getDate()}</span>`;
+            grid.append(head);
+          });
+
+          allMembers.forEach(member => {
+            const nameCell = document.createElement('div');
+            nameCell.className = `overview-name${member.special ? ' school-row-name' : ''}`;
+            nameCell.textContent = member.name;
+            nameCell.title = member.name;
+            grid.append(nameCell);
+
+            dates.forEach(date => {
+              const key = isoDate(date);
+              const holiday = holidays.get(key);
+              const dayEvents = eventsAt(member.id, key);
+              const cell = document.createElement('div');
+              cell.className = `overview-cell${member.special ? ' school-row-cell' : ''}${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${!memberIsActive(member, key) ? ' inactive' : ''}`;
+              cell.title = holiday ? `${longDate.format(date)} — ${holiday}` : longDate.format(date);
+
+              const visibleEvents = dayEvents.some(event => event.portion === 'full')
+                ? dayEvents.filter(event => event.portion === 'full').slice(0, 1)
+                : dayEvents;
+              visibleEvents.forEach(event => {
+                const fill = document.createElement('div');
+                const eventType = event.type === 'schoolHoliday' ? SCHOOL_HOLIDAY : TYPES[event.type];
+                const startsHere = event.start === key || key.endsWith('-01');
+                const endsHere = event.end === key || key === monthLast;
+                fill.className = `event-fill ${event.portion} ${startsHere ? 'start' : ''} ${endsHere ? 'end' : ''}${event.comment ? ' has-comment' : ''}`;
+                fill.style.setProperty('--event-color', eventType.color);
+                const details = `${eventType.label}${event.comment ? ` — ${event.comment}` : ''}`;
+                cell.title = `${cell.title}\n${details}`;
+                cell.append(fill);
+              });
+              grid.append(cell);
+            });
+          });
+
+          scroll.append(grid);
+          section.append(scroll);
+          overviewContent.append(section);
+        }
       }
 
       function selectedType() {
@@ -545,6 +629,10 @@
         const today = new Date();
         displayedMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         render();
+      });
+      document.querySelector('#overviewButton').addEventListener('click', () => {
+        renderOverview();
+        overviewModal.show();
       });
       monthPicker.addEventListener('click', () => {
         if (typeof nativeMonth.showPicker === 'function') nativeMonth.showPicker();
