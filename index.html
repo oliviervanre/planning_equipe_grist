@@ -121,7 +121,7 @@
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
           <div>
             <h1 class="h4 mb-1">Planning d’équipe</h1>
-            <p class="text-secondary mb-0">Présences, absences et situations générales de l’équipe.</p>
+            <p class="text-secondary mb-0" id="dataStatus">Présences, absences et situations générales de l’équipe.</p>
           </div>
           <div class="d-flex align-items-center gap-2">
             <button class="btn btn-outline-secondary" id="previousMonth" type="button" aria-label="Mois précédent">‹</button>
@@ -188,6 +188,7 @@
 
   <input type="month" id="nativeMonth" class="position-fixed opacity-0 pe-none" style="width:1px;height:1px" aria-hidden="true">
 
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     (() => {
@@ -207,7 +208,7 @@
       const longDate = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       const shortDate = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 
-      const members = [
+      const DEMO_MEMBERS = [
         { id: 'u1', name: 'Olivier Martin',  start: '2024-01-01', end: null },
         { id: 'u2', name: 'Edgard Simon',    start: '2025-04-01', end: null },
         { id: 'u3', name: 'Lantosoa Raja',   start: '2026-10-12', end: null },
@@ -215,7 +216,9 @@
         { id: 'u5', name: 'Sarah Leroy',     start: '2026-11-02', end: null }
       ];
 
-      let displayedMonth = new Date(2026, 9, 1);
+      let members = [...DEMO_MEMBERS];
+      const now = new Date();
+      let displayedMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       let events = [
         { id: uid(), memberId: 'u1', start: '2026-10-05', end: '2026-10-07', type: 'remote', portion: 'full', comment: '' },
         { id: uid(), memberId: 'u1', start: '2026-10-19', end: '2026-10-23', type: 'leave', portion: 'full', comment: 'Congé annuel' },
@@ -497,6 +500,69 @@
         } catch (_) { /* conserver les données de démonstration */ }
       }
 
+      function gristDateToIso(value) {
+        if (value === null || value === undefined || value === '') return null;
+        if (typeof value === 'number') return new Date(value * 1000).toISOString().slice(0, 10);
+        if (typeof value === 'string') {
+          const match = value.match(/^\d{4}-\d{2}-\d{2}/);
+          if (match) return match[0];
+        }
+        return null;
+      }
+
+      function rowsFromTable(table) {
+        const ids = Array.isArray(table.id) ? table.id : [];
+        return ids.map((id, index) => {
+          const row = { id };
+          Object.entries(table).forEach(([column, values]) => {
+            if (Array.isArray(values)) row[column] = values[index];
+          });
+          return row;
+        });
+      }
+
+      function sampleEventsFor(team) {
+        const year = displayedMonth.getFullYear();
+        const month = displayedMonth.getMonth();
+        const day = number => isoDate(new Date(year, month, number));
+        const samples = [];
+        if (team[0]) samples.push({ id: uid(), memberId: team[0].id, start: day(5), end: day(7), type: 'remote', portion: 'full', comment: '' });
+        if (team[0]) samples.push({ id: uid(), memberId: team[0].id, start: day(19), end: day(23), type: 'leave', portion: 'full', comment: 'Congé annuel' });
+        if (team[1]) samples.push({ id: uid(), memberId: team[1].id, start: day(8), end: day(9), type: 'training', portion: 'full', comment: 'Formation extérieure' });
+        if (team[2]) samples.push({ id: uid(), memberId: team[2].id, start: day(15), end: day(15), type: 'remote', portion: 'pm', comment: '' });
+        if (team[3]) samples.push({ id: uid(), memberId: team[3].id, start: day(2), end: day(2), type: 'other', portion: 'am', comment: 'Rendez-vous' });
+        return samples;
+      }
+
+      async function loadMembersFromGrist() {
+        const params = new URLSearchParams(window.location.search);
+        const inGrist = typeof globalThis.grist !== 'undefined' && params.has('access');
+        if (!inGrist) return false;
+
+        grist.ready({ requiredAccess: 'full' });
+        const table = await grist.docApi.fetchTable('Utilisateurs');
+        const loadedMembers = rowsFromTable(table)
+          .filter(row => String(row.nom || '').trim())
+          .map(row => ({
+            id: String(row.id),
+            rowId: row.id,
+            name: String(row.nom).trim(),
+            email: String(row.email || '').trim().toLowerCase(),
+            role: String(row.role || 'MEMBRE'),
+            active: Boolean(row.actif),
+            start: gristDateToIso(row.date_arrivee),
+            end: gristDateToIso(row.date_depart),
+            order: Number(row.ordre) || 9999
+          }))
+          .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'fr'));
+
+        if (!loadedMembers.length) throw new Error('La table Utilisateurs ne contient aucun membre nommé.');
+        members = loadedMembers;
+        events = sampleEventsFor(members);
+        document.querySelector('#dataStatus').textContent = `${members.length} membres chargés depuis Grist · périodes encore fictives`;
+        return true;
+      }
+
       calendar.addEventListener('pointerdown', event => beginDrag(event.target.closest('.day-cell'), event));
       calendar.addEventListener('pointermove', event => {
         if (!drag) return;
@@ -534,9 +600,19 @@
         render();
       });
 
-      loadLocal();
-      renderTypeChoices();
-      render();
+      async function initialise() {
+        renderTypeChoices();
+        try {
+          const gristLoaded = await loadMembersFromGrist();
+          if (!gristLoaded) loadLocal();
+        } catch (error) {
+          console.error(error);
+          document.querySelector('#dataStatus').textContent = `Lecture Grist impossible : ${error.message}`;
+        }
+        render();
+      }
+
+      initialise();
     })();
   </script>
 </body>
