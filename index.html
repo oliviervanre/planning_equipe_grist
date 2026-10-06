@@ -93,6 +93,8 @@
     .person-name .membership { color: var(--muted); font-size: .67rem; white-space: nowrap; }
     .calendar-grid.compact-names .person-name { padding-inline: .55rem; }
     .calendar-grid.compact-names .person-name .membership { display: none; }
+    .person-name.school-row-name { background: #fff7bf; border-top: 2px solid #e0b800; }
+    .day-cell.school-row-cell { border-top: 2px solid #e0b800; background-color: #fffdf0; }
 
     .day-cell { position: relative; background: #fff; cursor: crosshair; touch-action: none; }
     .day-cell:hover { outline: 2px solid rgba(13, 110, 253, .35); outline-offset: -2px; z-index: 2; }
@@ -162,6 +164,7 @@
         <div class="d-flex flex-wrap gap-3 small">
           <span class="d-inline-flex align-items-center gap-2"><span class="legend-sample weekend"></span>Week-end</span>
           <span class="d-inline-flex align-items-center gap-2"><span class="legend-sample holiday"></span>Jour férié</span>
+          <span class="d-inline-flex align-items-center gap-2"><span class="legend-sample" style="background:#ffd400"></span>Congés scolaires</span>
         </div>
         <div class="small-help">Cliquer-glisser pour ajouter · Repasser sur une période pour l’effacer · Cliquer sur une case colorée pour la modifier</div>
       </footer>
