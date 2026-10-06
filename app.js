@@ -321,8 +321,8 @@
       function eventToGristFields(event) {
         return {
           utilisateur: Number(event.memberId),
-          date_debut: isoToGristDate(event.start),
-          date_fin: isoToGristDate(event.end),
+          date_debut_periode: isoToGristDate(event.start),
+          date_fin_periode: isoToGristDate(event.end),
           type: TYPES[event.type].label,
           portion: PORTION_LABELS[event.portion],
           commentaire: event.comment || ''
@@ -474,8 +474,8 @@
             id: `p-${row.id}`,
             rowId: row.id,
             memberId: String(row.utilisateur || ''),
-            start: gristDateToIso(row.date_debut),
-            end: gristDateToIso(row.date_fin),
+            start: gristDateToIso(row.date_debut_periode),
+            end: gristDateToIso(row.date_fin_periode),
             type: TYPE_BY_LABEL[String(row.type || '')] || 'other',
             portion: PORTION_BY_LABEL[String(row.portion || '')] || 'full',
             comment: String(row.commentaire || '')
