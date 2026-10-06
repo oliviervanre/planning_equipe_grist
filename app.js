@@ -8,8 +8,8 @@
         training:     { label: 'Formation',       color: '#8b55c5' },
         other:        { label: 'Autre',           color: '#d17a18' }
       };
-      const AVATAR_COLORS = ['#334e78', '#7b4b94', '#197568', '#aa5a21', '#a53b52'];
       const STORAGE_KEY = 'planning-equipe-demo-v1';
+      const NAME_MODE_KEY = 'planning-equipe-compact-names';
       const DAY_INITIALS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
       const monthLabel = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' });
       const longDate = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -35,6 +35,7 @@
       ];
       let drag = null;
       let modalState = null;
+      let compactNames = localStorage.getItem(NAME_MODE_KEY) === 'true';
 
       const calendar = document.querySelector('#calendar');
       const monthPicker = document.querySelector('#monthPicker');
@@ -103,8 +104,10 @@
         return events.find(event => event.memberId === memberId && event.start <= dateKey && event.end >= dateKey);
       }
 
-      function initials(name) {
-        return name.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
+      function compactName(name) {
+        const parts = name.trim().split(/\s+/);
+        if (parts.length < 2) return name;
+        return `${parts[0][0].toUpperCase()}. ${parts.at(-1)}`;
       }
 
       function membershipLabel(member) {
@@ -134,13 +137,19 @@
         const holidays = holidaysFor(displayedMonth.getFullYear());
         const todayKey = isoDate(new Date());
         calendar.style.setProperty('--days', dates.length);
+        calendar.classList.toggle('compact-names', compactNames);
         calendar.replaceChildren();
         monthPicker.textContent = monthLabel.format(displayedMonth);
         nativeMonth.value = `${displayedMonth.getFullYear()}-${String(displayedMonth.getMonth() + 1).padStart(2, '0')}`;
 
         const corner = document.createElement('div');
         corner.className = 'head-name sticky-name d-flex align-items-center';
-        corner.textContent = 'Équipe';
+        corner.innerHTML = `<label class="name-mode-switch" title="Afficher les noms complets"><span>Équipe</span><input class="form-check-input" id="nameMode" type="checkbox" role="switch" ${compactNames ? '' : 'checked'}></label>`;
+        corner.querySelector('#nameMode').addEventListener('change', event => {
+          compactNames = !event.target.checked;
+          localStorage.setItem(NAME_MODE_KEY, String(compactNames));
+          render();
+        });
         calendar.append(corner);
 
         dates.forEach(date => {
@@ -153,10 +162,11 @@
           calendar.append(head);
         });
 
-        members.forEach((member, memberIndex) => {
+        members.forEach(member => {
           const nameCell = document.createElement('div');
           nameCell.className = 'person-name sticky-name';
-          nameCell.innerHTML = `<span class="avatar" style="background:${AVATAR_COLORS[memberIndex]}">${initials(member.name)}</span><span class="meta"><span class="name d-block">${member.name}</span><span class="membership">${membershipLabel(member)}</span></span>`;
+          const shownName = compactNames ? compactName(member.name) : member.name;
+          nameCell.innerHTML = `<span class="meta"><span class="name d-block" title="${member.name}">${shownName}</span><span class="membership">${membershipLabel(member)}</span></span>`;
           calendar.append(nameCell);
 
           dates.forEach(date => {
@@ -421,4 +431,3 @@
 
       initialise();
     })();
-
