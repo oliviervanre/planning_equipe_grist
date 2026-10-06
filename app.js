@@ -11,6 +11,9 @@
       const TYPE_BY_LABEL = Object.fromEntries(Object.entries(TYPES).map(([key, value]) => [value.label, key]));
       const PORTION_LABELS = { full: 'Journée', am: 'Matin', pm: 'Après-midi' };
       const PORTION_BY_LABEL = Object.fromEntries(Object.entries(PORTION_LABELS).map(([key, value]) => [value, key]));
+      const SCHOOL_ROW_ID = '__school_holidays__';
+      const SCHOOL_HOLIDAY = { label: 'Congés scolaires', color: '#ffd400' };
+      const SCHOOL_MEMBER = { id: SCHOOL_ROW_ID, name: 'Congés scolaires', special: true, start: null, end: null };
       const STORAGE_KEY = 'planning-equipe-demo-v1';
       const NAME_MODE_KEY = 'planning-equipe-compact-names';
       const DAY_INITIALS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
@@ -123,6 +126,7 @@
       }
 
       function membershipLabel(member) {
+        if (member.special) return 'Saisie administrateur';
         const monthStart = isoDate(displayedMonth);
         const monthEnd = isoDate(new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() + 1, 0));
         if (member.start >= monthStart && member.start <= monthEnd) return `Arrivée le ${shortDate.format(fromIso(member.start))}`;
@@ -174,9 +178,9 @@
           calendar.append(head);
         });
 
-        members.forEach(member => {
+        [...members, SCHOOL_MEMBER].forEach(member => {
           const nameCell = document.createElement('div');
-          nameCell.className = 'person-name sticky-name';
+          nameCell.className = `person-name sticky-name${member.special ? ' school-row-name' : ''}`;
           const shownName = compactNames ? compactName(member.name) : member.name;
           nameCell.innerHTML = `<span class="meta"><span class="name d-block" title="${member.name}">${shownName}</span><span class="membership">${membershipLabel(member)}</span></span>`;
           calendar.append(nameCell);
@@ -187,7 +191,7 @@
             const holiday = holidays.get(key);
             const dayEvents = eventsAt(member.id, key);
             const cell = document.createElement('div');
-            cell.className = `day-cell${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${!active ? ' inactive' : ''}`;
+            cell.className = `day-cell${member.special ? ' school-row-cell' : ''}${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${!active ? ' inactive' : ''}`;
             cell.dataset.memberId = member.id;
             cell.dataset.date = key;
             cell.title = holiday ? `${longDate.format(date)} — ${holiday}` : longDate.format(date);
@@ -201,9 +205,10 @@
               const monthLast = isoDate(dates[dates.length - 1]);
               const endsHere = event.end === key || key === monthLast;
               fill.className = `event-fill ${event.portion} ${startsHere ? 'start' : ''} ${endsHere ? 'end' : ''}${event.comment ? ' has-comment' : ''}`;
-              fill.style.setProperty('--event-color', TYPES[event.type].color);
+              const eventType = event.type === 'schoolHoliday' ? SCHOOL_HOLIDAY : TYPES[event.type];
+              fill.style.setProperty('--event-color', eventType.color);
               fill.dataset.eventId = event.id;
-              const details = `${TYPES[event.type].label}${event.comment ? ` — ${event.comment}` : ''}`;
+              const details = `${eventType.label}${event.comment ? ` — ${event.comment}` : ''}`;
               cell.title = `${cell.title}\n${details}`;
               cell.append(fill);
             });
@@ -220,7 +225,8 @@
       function beginDrag(cell, event) {
         if (!cell || cell.classList.contains('inactive') || event.button !== 0) return;
         event.preventDefault();
-        const selectedPortion = document.querySelector('#portion').value;
+        const isSchoolRow = cell.dataset.memberId === SCHOOL_ROW_ID;
+        const selectedPortion = isSchoolRow ? 'full' : document.querySelector('#portion').value;
         const clickedId = event.target.closest('.event-fill')?.dataset.eventId || null;
         const clickedEvent = clickedId ? events.find(item => item.id === clickedId) : null;
         const existing = clickedEvent || eventForPortion(cell.dataset.memberId, cell.dataset.date, selectedPortion);
@@ -260,6 +266,22 @@
         document.querySelectorAll('.day-cell.pending').forEach(cell => cell.classList.remove('pending'));
         const start = action.start < action.end ? action.start : action.end;
         const end = action.start < action.end ? action.end : action.start;
+
+        if (action.memberId === SCHOOL_ROW_ID) {
+          if (action.mode === 'erase') {
+            await persistPeriodChanges(eraseRange(SCHOOL_ROW_ID, start, end, 'full'));
+          } else {
+            const changes = eraseRange(SCHOOL_ROW_ID, start, end, null);
+            const newEvent = {
+              id: uid(), memberId: SCHOOL_ROW_ID, start, end,
+              type: 'schoolHoliday', portion: 'full', comment: ''
+            };
+            events.push(newEvent);
+            changes.added.push(newEvent);
+            await persistPeriodChanges(changes);
+          }
+          return;
+        }
 
         if (action.mode === 'erase') {
           if (!action.moved && action.existingId) {
@@ -320,11 +342,12 @@
       }
 
       function eventToGristFields(event) {
+        const isSchoolHoliday = event.memberId === SCHOOL_ROW_ID;
         return {
-          utilisateur: Number(event.memberId),
+          utilisateur: isSchoolHoliday ? 0 : Number(event.memberId),
           date_debut_periode: isoToGristDate(event.start),
           date_fin_periode: isoToGristDate(event.end),
-          type: TYPES[event.type].label,
+          type: isSchoolHoliday ? SCHOOL_HOLIDAY.label : TYPES[event.type].label,
           portion: PORTION_LABELS[event.portion],
           commentaire: event.comment || ''
         };
@@ -471,17 +494,21 @@
         members = loadedMembers;
         const validMemberIds = new Set(members.map(member => member.id));
         events = rowsFromTable(periodsTable)
-          .map(row => ({
-            id: `p-${row.id}`,
-            rowId: row.id,
-            memberId: String(row.utilisateur || ''),
-            start: gristDateToIso(row.date_debut_periode),
-            end: gristDateToIso(row.date_fin_periode),
-            type: TYPE_BY_LABEL[String(row.type || '')] || 'other',
-            portion: PORTION_BY_LABEL[String(row.portion || '')] || 'full',
-            comment: String(row.commentaire || '')
-          }))
-          .filter(event => validMemberIds.has(event.memberId) && event.start && event.end);
+          .map(row => {
+            const rawType = String(row.type || '');
+            const isSchoolHoliday = !row.utilisateur && rawType === SCHOOL_HOLIDAY.label;
+            return {
+              id: `p-${row.id}`,
+              rowId: row.id,
+              memberId: isSchoolHoliday ? SCHOOL_ROW_ID : String(row.utilisateur || ''),
+              start: gristDateToIso(row.date_debut_periode),
+              end: gristDateToIso(row.date_fin_periode),
+              type: isSchoolHoliday ? 'schoolHoliday' : TYPE_BY_LABEL[rawType] || 'other',
+              portion: isSchoolHoliday ? 'full' : PORTION_BY_LABEL[String(row.portion || '')] || 'full',
+              comment: String(row.commentaire || '')
+            };
+          })
+          .filter(event => (event.memberId === SCHOOL_ROW_ID || validMemberIds.has(event.memberId)) && event.start && event.end);
         document.querySelector('#dataStatus').textContent = `Mise à jour le ${updateDateTime.format(new Date())}`;
       }
 
