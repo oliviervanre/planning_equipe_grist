@@ -481,7 +481,6 @@
             comment: String(row.commentaire || '')
           }))
           .filter(event => validMemberIds.has(event.memberId) && event.start && event.end);
-        document.querySelector('#dataStatus').textContent = `${members.length} membres · ${events.length} périodes chargées depuis Grist`;
       }
 
       calendar.addEventListener('pointerdown', event => beginDrag(event.target.closest('.day-cell'), event));
