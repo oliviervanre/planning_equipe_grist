@@ -180,6 +180,14 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
         </div>
         <div class="modal-body">
+          <label class="form-label" for="eventTypeEdit">Situation</label>
+          <select class="form-select mb-3" id="eventTypeEdit">
+            <option value="plannedLeave">Prévision congé</option>
+            <option value="leave">Congé</option>
+            <option value="remote">Télétravail</option>
+            <option value="training">Formation</option>
+            <option value="other">Autre</option>
+          </select>
           <label class="form-label" for="eventComment">Commentaire facultatif</label>
           <textarea class="form-control" id="eventComment" rows="3" maxlength="300" placeholder="Ex. congé annuel, formation extérieure…"></textarea>
           <div class="form-text">La typologie reste volontairement simple ; le commentaire permet d’apporter une précision si nécessaire.</div>
