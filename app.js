@@ -2,7 +2,7 @@
       'use strict';
 
       const TYPES = {
-        plannedLeave: { label: 'Prévision congé', color: '#6f96c7' },
+        plannedLeave: { label: 'Prévision congé', color: '#9fc5ed' },
         leave:        { label: 'Congé',           color: '#2878d0' },
         remote:       { label: 'Télétravail',     color: '#188766' },
         training:     { label: 'Formation',       color: '#8b55c5' },
