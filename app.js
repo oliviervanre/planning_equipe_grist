@@ -568,7 +568,7 @@
           grist.docApi.fetchTable('Utilisateurs'),
           grist.docApi.fetchTable('Periodes')
         ]);
-        const loadedMembers = rowsFromTable(usersTable)
+        const loadedUsers = rowsFromTable(usersTable)
           .filter(row => String(row.nom || '').trim())
           .map(row => ({
             id: String(row.id),
@@ -584,12 +584,14 @@
           }))
           .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'fr'));
 
-        if (!loadedMembers.length) throw new Error('La table Utilisateurs ne contient aucun membre nommé.');
-        currentUserIsAdmin = loadedMembers.some(member => member.email && member.role === 'ADMINISTRATEUR');
-        members = loadedMembers.map(member => ({
-          ...member,
-          canEdit: currentUserIsAdmin || Boolean(member.email)
-        }));
+        if (!loadedUsers.length) throw new Error('La table Utilisateurs ne contient aucun membre nommé.');
+        currentUserIsAdmin = loadedUsers.some(member => member.email && member.role === 'ADMINISTRATEUR');
+        members = loadedUsers
+          .filter(member => member.active)
+          .map(member => ({
+            ...member,
+            canEdit: currentUserIsAdmin || Boolean(member.email)
+          }));
         const validMemberIds = new Set(members.map(member => member.id));
         events = rowsFromTable(periodsTable)
           .map(row => {
