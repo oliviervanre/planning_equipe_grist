@@ -100,8 +100,14 @@
         return (!member.start || dateKey >= member.start) && (!member.end || dateKey <= member.end);
       }
 
-      function eventAt(memberId, dateKey) {
-        return events.find(event => event.memberId === memberId && event.start <= dateKey && event.end >= dateKey);
+      function eventsAt(memberId, dateKey) {
+        return events.filter(event => event.memberId === memberId && event.start <= dateKey && event.end >= dateKey);
+      }
+
+      function eventForPortion(memberId, dateKey, portion) {
+        const dayEvents = eventsAt(memberId, dateKey);
+        if (portion === 'full') return dayEvents[0] || null;
+        return dayEvents.find(event => event.portion === portion) || dayEvents.find(event => event.portion === 'full') || null;
       }
 
       function compactName(name) {
@@ -173,25 +179,28 @@
             const key = isoDate(date);
             const active = memberIsActive(member, key);
             const holiday = holidays.get(key);
-            const event = eventAt(member.id, key);
+            const dayEvents = eventsAt(member.id, key);
             const cell = document.createElement('div');
             cell.className = `day-cell${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${!active ? ' inactive' : ''}`;
             cell.dataset.memberId = member.id;
             cell.dataset.date = key;
             cell.title = holiday ? `${longDate.format(date)} — ${holiday}` : longDate.format(date);
 
-            if (event) {
+            const visibleEvents = dayEvents.some(event => event.portion === 'full')
+              ? dayEvents.filter(event => event.portion === 'full').slice(0, 1)
+              : dayEvents;
+            visibleEvents.forEach(event => {
               const fill = document.createElement('div');
               const startsHere = event.start === key || key.endsWith('-01');
               const monthLast = isoDate(dates[dates.length - 1]);
               const endsHere = event.end === key || key === monthLast;
               fill.className = `event-fill ${event.portion} ${startsHere ? 'start' : ''} ${endsHere ? 'end' : ''}${event.comment ? ' has-comment' : ''}`;
               fill.style.setProperty('--event-color', TYPES[event.type].color);
+              fill.dataset.eventId = event.id;
               const details = `${TYPES[event.type].label}${event.comment ? ` — ${event.comment}` : ''}`;
               cell.title = `${cell.title}\n${details}`;
-              cell.dataset.eventId = event.id;
               cell.append(fill);
-            }
+            });
             calendar.append(cell);
           });
         });
@@ -205,12 +214,16 @@
       function beginDrag(cell, event) {
         if (!cell || cell.classList.contains('inactive') || event.button !== 0) return;
         event.preventDefault();
-        const existing = eventAt(cell.dataset.memberId, cell.dataset.date);
+        const selectedPortion = document.querySelector('#portion').value;
+        const clickedId = event.target.closest('.event-fill')?.dataset.eventId || null;
+        const clickedEvent = clickedId ? events.find(item => item.id === clickedId) : null;
+        const existing = clickedEvent || eventForPortion(cell.dataset.memberId, cell.dataset.date, selectedPortion);
         drag = {
           memberId: cell.dataset.memberId,
           start: cell.dataset.date,
           end: cell.dataset.date,
           mode: existing ? 'erase' : 'add',
+          portion: clickedEvent?.portion || selectedPortion,
           moved: false,
           existingId: existing?.id || null
         };
@@ -246,29 +259,42 @@
           if (!action.moved && action.existingId) {
             openEditModal(action.existingId);
           } else {
-            eraseRange(action.memberId, start, end);
+            eraseRange(action.memberId, start, end, action.portion);
             render();
           }
           return;
         }
-        openCreateModal(action.memberId, start, end);
+        openCreateModal(action.memberId, start, end, action.portion);
       }
 
-      function eraseRange(memberId, start, end) {
+      function eraseRange(memberId, start, end, portion = null) {
         const replacement = [];
         events.forEach(event => {
-          if (event.memberId !== memberId || event.end < start || event.start > end) {
+          const overlaps = event.memberId === memberId && event.end >= start && event.start <= end;
+          const sameLane = portion === null || event.portion === portion || (event.portion === 'full' && ['am', 'pm'].includes(portion));
+          if (!overlaps || !sameLane) {
             replacement.push(event);
             return;
           }
+          const overlapStart = event.start > start ? event.start : start;
+          const overlapEnd = event.end < end ? event.end : end;
           if (event.start < start) replacement.push({ ...event, id: uid(), end: addDays(start, -1) });
           if (event.end > end) replacement.push({ ...event, id: uid(), start: addDays(end, 1) });
+          if (event.portion === 'full' && ['am', 'pm'].includes(portion)) {
+            replacement.push({
+              ...event,
+              id: uid(),
+              start: overlapStart,
+              end: overlapEnd,
+              portion: portion === 'am' ? 'pm' : 'am'
+            });
+          }
         });
         events = replacement;
       }
 
-      function openCreateModal(memberId, start, end) {
-        modalState = { mode: 'create', memberId, start, end };
+      function openCreateModal(memberId, start, end, portion) {
+        modalState = { mode: 'create', memberId, start, end, portion };
         const member = members.find(item => item.id === memberId);
         document.querySelector('#eventModalTitle').textContent = `Ajouter : ${TYPES[selectedType()].label}`;
         document.querySelector('#eventSummary').textContent = `${member.name} · du ${shortDate.format(fromIso(start))} au ${shortDate.format(fromIso(end))}`;
@@ -291,11 +317,12 @@
       function saveModal() {
         const comment = document.querySelector('#eventComment').value.trim();
         if (modalState.mode === 'create') {
-          eraseRange(modalState.memberId, modalState.start, modalState.end);
+          const portion = modalState.portion;
+          eraseRange(modalState.memberId, modalState.start, modalState.end, portion === 'full' ? null : portion);
           events.push({
             id: uid(), memberId: modalState.memberId,
             start: modalState.start, end: modalState.end,
-            type: selectedType(), portion: document.querySelector('#portion').value,
+            type: selectedType(), portion,
             comment
           });
         } else {
