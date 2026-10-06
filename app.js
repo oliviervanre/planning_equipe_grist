@@ -45,6 +45,7 @@
       let compactNames = localStorage.getItem(NAME_MODE_KEY) === 'true';
       let gristMode = false;
       let writeInProgress = false;
+      let currentUserIsAdmin = false;
 
       const calendar = document.querySelector('#calendar');
       const monthPicker = document.querySelector('#monthPicker');
@@ -107,6 +108,12 @@
 
       function memberIsActive(member, dateKey) {
         return (!member.start || dateKey >= member.start) && (!member.end || dateKey <= member.end);
+      }
+
+      function memberIsEditable(member) {
+        if (!gristMode) return true;
+        if (member.special) return currentUserIsAdmin;
+        return currentUserIsAdmin || member.canEdit;
       }
 
       function eventsAt(memberId, dateKey) {
@@ -188,12 +195,14 @@
           dates.forEach(date => {
             const key = isoDate(date);
             const active = memberIsActive(member, key);
+            const editable = memberIsEditable(member);
             const holiday = holidays.get(key);
             const dayEvents = eventsAt(member.id, key);
             const cell = document.createElement('div');
-            cell.className = `day-cell${member.special ? ' school-row-cell' : ''}${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${!active ? ' inactive' : ''}`;
+            cell.className = `day-cell${member.special ? ' school-row-cell' : ''}${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${!active ? ' inactive' : ''}${!editable ? ' read-only' : ''}`;
             cell.dataset.memberId = member.id;
             cell.dataset.date = key;
+            cell.setAttribute('aria-readonly', String(!editable));
             cell.title = holiday ? `${longDate.format(date)} — ${holiday}` : longDate.format(date);
 
             const visibleEvents = dayEvents.some(event => event.portion === 'full')
@@ -223,7 +232,7 @@
       }
 
       function beginDrag(cell, event) {
-        if (!cell || cell.classList.contains('inactive') || event.button !== 0) return;
+        if (!cell || cell.classList.contains('inactive') || cell.classList.contains('read-only') || event.button !== 0) return;
         event.preventDefault();
         const isSchoolRow = cell.dataset.memberId === SCHOOL_ROW_ID;
         const selectedPortion = isSchoolRow ? 'full' : document.querySelector('#portion').value;
@@ -481,17 +490,22 @@
             id: String(row.id),
             rowId: row.id,
             name: String(row.nom).trim(),
-            email: String(row.email || '').trim().toLowerCase(),
+            email: typeof row.email === 'string' && row.email.includes('@') ? row.email.trim().toLowerCase() : '',
             role: String(row.role || 'MEMBRE'),
             active: Boolean(row.actif),
             start: gristDateToIso(row.date_arrivee),
             end: gristDateToIso(row.date_depart),
-            order: Number(row.ordre) || 9999
+            order: Number(row.ordre) || 9999,
+            canEdit: false
           }))
           .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'fr'));
 
         if (!loadedMembers.length) throw new Error('La table Utilisateurs ne contient aucun membre nommé.');
-        members = loadedMembers;
+        currentUserIsAdmin = loadedMembers.some(member => member.email && member.role === 'ADMINISTRATEUR');
+        members = loadedMembers.map(member => ({
+          ...member,
+          canEdit: currentUserIsAdmin || Boolean(member.email)
+        }));
         const validMemberIds = new Set(members.map(member => member.id));
         events = rowsFromTable(periodsTable)
           .map(row => {
