@@ -17,6 +17,7 @@
       const monthLabel = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' });
       const longDate = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       const shortDate = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+      const updateDateTime = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
 
       const DEMO_MEMBERS = [
         { id: 'u1', name: 'Olivier Martin',  start: '2024-01-01', end: null },
@@ -481,6 +482,7 @@
             comment: String(row.commentaire || '')
           }))
           .filter(event => validMemberIds.has(event.memberId) && event.start && event.end);
+        document.querySelector('#dataStatus').textContent = `Mise à jour le ${updateDateTime.format(new Date())}`;
       }
 
       calendar.addEventListener('pointerdown', event => beginDrag(event.target.closest('.day-cell'), event));
