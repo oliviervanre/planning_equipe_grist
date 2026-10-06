@@ -119,6 +119,31 @@
     .legend-sample { width: 1.1rem; height: 1.1rem; border: 1px solid rgba(0,0,0,.08); border-radius: .25rem; }
     .small-help { color: var(--muted); font-size: .75rem; }
 
+    .overview-body { background: #f3f5f8; }
+    .overview-month { overflow: hidden; border: 1px solid var(--line); border-radius: .8rem; background: #fff; }
+    .overview-month-title { margin: 0; padding: .65rem .85rem; border-bottom: 1px solid var(--line); font-size: .95rem; font-weight: 750; text-transform: capitalize; }
+    .overview-scroll { overflow-x: auto; }
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 150px repeat(var(--days), minmax(22px, 1fr));
+      min-width: calc(150px + var(--days) * 22px);
+      user-select: none;
+    }
+    .overview-corner, .overview-day-head { height: 38px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .overview-corner { position: sticky; left: 0; z-index: 3; display: flex; align-items: center; padding: 0 .65rem; border-right: 2px solid #b8c0cf; background: #fafbfc; color: var(--muted); font-size: .67rem; font-weight: 750; text-transform: uppercase; }
+    .overview-day-head { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fafbfc; font-size: .68rem; line-height: 1.05; }
+    .overview-day-head .dow { color: var(--muted); font-size: .58rem; font-weight: 750; }
+    .overview-day-head .number { font-weight: 750; }
+    .overview-name, .overview-cell { min-height: 32px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .overview-name { position: sticky; left: 0; z-index: 2; display: flex; align-items: center; overflow: hidden; padding: 0 .65rem; border-right: 2px solid #b8c0cf; background: #fff; font-size: .72rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .overview-name.school-row-name { background: #fff7bf; }
+    .overview-cell { position: relative; background: #fff; }
+    .overview-cell.inactive { background-color: var(--inactive) !important; background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgba(80,90,110,.08) 5px 7px); }
+    .overview-cell.school-row-cell, .overview-name.school-row-name { border-top: 1px solid #e0b800; }
+    .overview-cell .event-fill.full { inset-block: 4px; }
+    .overview-cell .event-fill.am { top: 3px; height: calc(50% - 3px); }
+    .overview-cell .event-fill.pm { bottom: 3px; height: calc(50% - 3px); }
+
     @media (max-width: 900px) {
       .app-shell { margin: 0 !important; padding: 0 !important; }
       .card { border-radius: 0; }
@@ -139,6 +164,7 @@
             <button class="btn btn-light month-title fw-bold" id="monthPicker" type="button"></button>
             <button class="btn btn-outline-secondary" id="nextMonth" type="button" aria-label="Mois suivant">›</button>
             <button class="btn btn-outline-primary" id="currentMonth" type="button">Aujourd’hui</button>
+            <button class="btn btn-primary" id="overviewButton" type="button">Vue d’ensemble</button>
           </div>
         </div>
 
@@ -201,6 +227,21 @@
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
           <button type="button" class="btn btn-primary" id="saveEvent">Enregistrer</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="overviewModal" tabindex="-1" aria-labelledby="overviewModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title fs-5" id="overviewModalTitle">Vue d’ensemble · 6 mois</h2>
+            <div class="small text-secondary">À partir du mois affiché dans le planning</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body overview-body p-3" id="overviewContent"></div>
       </div>
     </div>
   </div>
