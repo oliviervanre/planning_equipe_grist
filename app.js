@@ -8,6 +8,9 @@
         training:     { label: 'Formation',       color: '#8b55c5' },
         other:        { label: 'Autre',           color: '#d17a18' }
       };
+      const TYPE_BY_LABEL = Object.fromEntries(Object.entries(TYPES).map(([key, value]) => [value.label, key]));
+      const PORTION_LABELS = { full: 'Journée', am: 'Matin', pm: 'Après-midi' };
+      const PORTION_BY_LABEL = Object.fromEntries(Object.entries(PORTION_LABELS).map(([key, value]) => [value, key]));
       const STORAGE_KEY = 'planning-equipe-demo-v1';
       const NAME_MODE_KEY = 'planning-equipe-compact-names';
       const DAY_INITIALS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
@@ -36,6 +39,8 @@
       let drag = null;
       let modalState = null;
       let compactNames = localStorage.getItem(NAME_MODE_KEY) === 'true';
+      let gristMode = false;
+      let writeInProgress = false;
 
       const calendar = document.querySelector('#calendar');
       const monthPicker = document.querySelector('#monthPicker');
@@ -204,7 +209,7 @@
             calendar.append(cell);
           });
         });
-        saveLocal();
+        if (!gristMode) saveLocal();
       }
 
       function selectedType() {
@@ -247,8 +252,8 @@
         });
       }
 
-      function finishDrag() {
-        if (!drag) return;
+      async function finishDrag() {
+        if (!drag || writeInProgress) return;
         const action = drag;
         drag = null;
         document.querySelectorAll('.day-cell.pending').forEach(cell => cell.classList.remove('pending'));
@@ -259,8 +264,8 @@
           if (!action.moved && action.existingId) {
             openEditModal(action.existingId);
           } else {
-            eraseRange(action.memberId, start, end, action.portion);
-            render();
+            const changes = eraseRange(action.memberId, start, end, action.portion);
+            await persistPeriodChanges(changes);
           }
           return;
         }
@@ -269,6 +274,8 @@
 
       function eraseRange(memberId, start, end, portion = null) {
         const replacement = [];
+        const removed = [];
+        const added = [];
         events.forEach(event => {
           const overlaps = event.memberId === memberId && event.end >= start && event.start <= end;
           const sameLane = portion === null || event.portion === portion || (event.portion === 'full' && ['am', 'pm'].includes(portion));
@@ -276,21 +283,85 @@
             replacement.push(event);
             return;
           }
+          removed.push(event);
           const overlapStart = event.start > start ? event.start : start;
           const overlapEnd = event.end < end ? event.end : end;
-          if (event.start < start) replacement.push({ ...event, id: uid(), end: addDays(start, -1) });
-          if (event.end > end) replacement.push({ ...event, id: uid(), start: addDays(end, 1) });
+          if (event.start < start) {
+            const fragment = { ...event, id: uid(), rowId: null, end: addDays(start, -1) };
+            replacement.push(fragment);
+            added.push(fragment);
+          }
+          if (event.end > end) {
+            const fragment = { ...event, id: uid(), rowId: null, start: addDays(end, 1) };
+            replacement.push(fragment);
+            added.push(fragment);
+          }
           if (event.portion === 'full' && ['am', 'pm'].includes(portion)) {
-            replacement.push({
+            const fragment = {
               ...event,
               id: uid(),
+              rowId: null,
               start: overlapStart,
               end: overlapEnd,
               portion: portion === 'am' ? 'pm' : 'am'
-            });
+            };
+            replacement.push(fragment);
+            added.push(fragment);
           }
         });
         events = replacement;
+        return { removed, added };
+      }
+
+      function isoToGristDate(value) {
+        const [year, month, day] = value.split('-').map(Number);
+        return Date.UTC(year, month - 1, day) / 1000;
+      }
+
+      function eventToGristFields(event) {
+        return {
+          utilisateur: Number(event.memberId),
+          date_debut: isoToGristDate(event.start),
+          date_fin: isoToGristDate(event.end),
+          type: TYPES[event.type].label,
+          portion: PORTION_LABELS[event.portion],
+          commentaire: event.comment || ''
+        };
+      }
+
+      async function persistPeriodChanges({ removed = [], added = [], updated = [] }) {
+        if (!gristMode) {
+          render();
+          return;
+        }
+        const actions = [
+          ...removed.filter(event => event.rowId).map(event => ['RemoveRecord', 'Periodes', event.rowId]),
+          ...added.map(event => ['AddRecord', 'Periodes', null, eventToGristFields(event)]),
+          ...updated.filter(event => event.rowId).map(event => ['UpdateRecord', 'Periodes', event.rowId, eventToGristFields(event)])
+        ];
+        if (!actions.length) {
+          render();
+          return;
+        }
+
+        writeInProgress = true;
+        document.querySelector('#dataStatus').textContent = 'Enregistrement dans Grist…';
+        try {
+          await grist.docApi.applyUserActions(actions);
+          await loadDataFromGrist();
+          render();
+        } catch (error) {
+          console.error(error);
+          try {
+            await loadDataFromGrist();
+            render();
+          } catch (reloadError) {
+            console.error(reloadError);
+          }
+          document.querySelector('#dataStatus').textContent = `Écriture Grist impossible : ${error.message}`;
+        } finally {
+          writeInProgress = false;
+        }
       }
 
       function openCreateModal(memberId, start, end, portion) {
@@ -298,6 +369,7 @@
         const member = members.find(item => item.id === memberId);
         document.querySelector('#eventModalTitle').textContent = `Ajouter : ${TYPES[selectedType()].label}`;
         document.querySelector('#eventSummary').textContent = `${member.name} · du ${shortDate.format(fromIso(start))} au ${shortDate.format(fromIso(end))}`;
+        document.querySelector('#eventTypeEdit').value = selectedType();
         document.querySelector('#eventComment').value = '';
         document.querySelector('#deleteEvent').classList.add('d-none');
         eventModal.show();
@@ -309,28 +381,37 @@
         modalState = { mode: 'edit', eventId };
         document.querySelector('#eventModalTitle').textContent = `Modifier : ${TYPES[event.type].label}`;
         document.querySelector('#eventSummary').textContent = `${member.name} · du ${shortDate.format(fromIso(event.start))} au ${shortDate.format(fromIso(event.end))}`;
+        document.querySelector('#eventTypeEdit').value = event.type;
         document.querySelector('#eventComment').value = event.comment || '';
         document.querySelector('#deleteEvent').classList.remove('d-none');
         eventModal.show();
       }
 
-      function saveModal() {
+      async function saveModal() {
+        if (writeInProgress) return;
         const comment = document.querySelector('#eventComment').value.trim();
         if (modalState.mode === 'create') {
           const portion = modalState.portion;
-          eraseRange(modalState.memberId, modalState.start, modalState.end, portion === 'full' ? null : portion);
-          events.push({
+          const changes = eraseRange(modalState.memberId, modalState.start, modalState.end, portion === 'full' ? null : portion);
+          const newEvent = {
             id: uid(), memberId: modalState.memberId,
             start: modalState.start, end: modalState.end,
-            type: selectedType(), portion,
+            type: document.querySelector('#eventTypeEdit').value, portion,
             comment
-          });
+          };
+          events.push(newEvent);
+          changes.added.push(newEvent);
+          eventModal.hide();
+          await persistPeriodChanges(changes);
         } else {
           const event = events.find(item => item.id === modalState.eventId);
-          if (event) event.comment = comment;
+          if (event) {
+            event.type = document.querySelector('#eventTypeEdit').value;
+            event.comment = comment;
+            eventModal.hide();
+            await persistPeriodChanges({ updated: [event] });
+          }
         }
-        eventModal.hide();
-        render();
       }
 
       function saveLocal() {
@@ -345,7 +426,7 @@
       }
 
       function gristDateToIso(value) {
-        if (value === null || value === undefined || value === '') return null;
+        if (value === null || value === undefined || value === '' || value === 0) return null;
         if (typeof value === 'number') return new Date(value * 1000).toISOString().slice(0, 10);
         if (typeof value === 'string') {
           const match = value.match(/^\d{4}-\d{2}-\d{2}/);
@@ -365,27 +446,12 @@
         });
       }
 
-      function sampleEventsFor(team) {
-        const year = displayedMonth.getFullYear();
-        const month = displayedMonth.getMonth();
-        const day = number => isoDate(new Date(year, month, number));
-        const samples = [];
-        if (team[0]) samples.push({ id: uid(), memberId: team[0].id, start: day(5), end: day(7), type: 'remote', portion: 'full', comment: '' });
-        if (team[0]) samples.push({ id: uid(), memberId: team[0].id, start: day(19), end: day(23), type: 'leave', portion: 'full', comment: 'Congé annuel' });
-        if (team[1]) samples.push({ id: uid(), memberId: team[1].id, start: day(8), end: day(9), type: 'training', portion: 'full', comment: 'Formation extérieure' });
-        if (team[2]) samples.push({ id: uid(), memberId: team[2].id, start: day(15), end: day(15), type: 'remote', portion: 'pm', comment: '' });
-        if (team[3]) samples.push({ id: uid(), memberId: team[3].id, start: day(2), end: day(2), type: 'other', portion: 'am', comment: 'Rendez-vous' });
-        return samples;
-      }
-
-      async function loadMembersFromGrist() {
-        const params = new URLSearchParams(window.location.search);
-        const inGrist = typeof globalThis.grist !== 'undefined' && params.has('access');
-        if (!inGrist) return false;
-
-        grist.ready({ requiredAccess: 'full' });
-        const table = await grist.docApi.fetchTable('Utilisateurs');
-        const loadedMembers = rowsFromTable(table)
+      async function loadDataFromGrist() {
+        const [usersTable, periodsTable] = await Promise.all([
+          grist.docApi.fetchTable('Utilisateurs'),
+          grist.docApi.fetchTable('Periodes')
+        ]);
+        const loadedMembers = rowsFromTable(usersTable)
           .filter(row => String(row.nom || '').trim())
           .map(row => ({
             id: String(row.id),
@@ -402,9 +468,20 @@
 
         if (!loadedMembers.length) throw new Error('La table Utilisateurs ne contient aucun membre nommé.');
         members = loadedMembers;
-        events = sampleEventsFor(members);
-        document.querySelector('#dataStatus').textContent = `${members.length} membres chargés depuis Grist · périodes encore fictives`;
-        return true;
+        const validMemberIds = new Set(members.map(member => member.id));
+        events = rowsFromTable(periodsTable)
+          .map(row => ({
+            id: `p-${row.id}`,
+            rowId: row.id,
+            memberId: String(row.utilisateur || ''),
+            start: gristDateToIso(row.date_debut),
+            end: gristDateToIso(row.date_fin),
+            type: TYPE_BY_LABEL[String(row.type || '')] || 'other',
+            portion: PORTION_BY_LABEL[String(row.portion || '')] || 'full',
+            comment: String(row.commentaire || '')
+          }))
+          .filter(event => validMemberIds.has(event.memberId) && event.start && event.end);
+        document.querySelector('#dataStatus').textContent = `${members.length} membres · ${events.length} périodes chargées depuis Grist`;
       }
 
       calendar.addEventListener('pointerdown', event => beginDrag(event.target.closest('.day-cell'), event));
@@ -438,17 +515,26 @@
         render();
       });
       document.querySelector('#saveEvent').addEventListener('click', saveModal);
-      document.querySelector('#deleteEvent').addEventListener('click', () => {
-        if (modalState?.eventId) events = events.filter(event => event.id !== modalState.eventId);
+      document.querySelector('#deleteEvent').addEventListener('click', async () => {
+        if (writeInProgress || !modalState?.eventId) return;
+        const event = events.find(item => item.id === modalState.eventId);
+        if (!event) return;
+        events = events.filter(item => item.id !== modalState.eventId);
         eventModal.hide();
-        render();
+        await persistPeriodChanges({ removed: [event] });
       });
 
       async function initialise() {
         renderTypeChoices();
         try {
-          const gristLoaded = await loadMembersFromGrist();
-          if (!gristLoaded) loadLocal();
+          const params = new URLSearchParams(window.location.search);
+          gristMode = typeof globalThis.grist !== 'undefined' && params.has('access');
+          if (gristMode) {
+            grist.ready({ requiredAccess: 'full' });
+            await loadDataFromGrist();
+          } else {
+            loadLocal();
+          }
         } catch (error) {
           console.error(error);
           document.querySelector('#dataStatus').textContent = `Lecture Grist impossible : ${error.message}`;
