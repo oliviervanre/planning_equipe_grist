@@ -27,7 +27,17 @@
     .app-shell { max-width: 1480px; }
     .card { border-color: #dfe3eb; border-radius: 1rem; }
     .toolbar { border-bottom: 1px solid var(--line); }
-    .month-title { min-width: 190px; text-transform: capitalize; }
+    .month-title {
+      min-width: 205px;
+      padding: .52rem 1.1rem;
+      border: 1px solid #bfd4ee;
+      background: #f2f7ff;
+      box-shadow: 0 1px 3px rgba(23, 55, 94, .08);
+      color: #17375e;
+      font-size: 1.08rem;
+      text-transform: capitalize;
+    }
+    .month-title:hover, .month-title:focus-visible { border-color: #8db4df; background: #eaf3ff; color: #102f55; }
 
     .type-choice input { position: absolute; opacity: 0; pointer-events: none; }
     .type-choice label {
@@ -78,6 +88,7 @@
     .day-head { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fafbfc; }
     .day-head .dow { color: var(--muted); font-size: .68rem; font-weight: 800; text-transform: uppercase; }
     .day-head .number { font-size: 1rem; font-weight: 750; }
+    .day-head.today, .overview-day-head.today { box-shadow: inset 0 0 0 999px rgba(13, 110, 253, .055); }
     .day-head.today::after { position: absolute; bottom: 5px; width: 20px; height: 3px; border-radius: 2px; background: #0d6efd; content: ""; }
     .weekend { background-color: var(--weekend) !important; }
     .holiday { color: #a51f32; background-color: var(--holiday) !important; }
@@ -97,6 +108,7 @@
     .day-cell.school-row-cell { border-top: 2px solid #e0b800; background-color: #fffdf0; }
 
     .day-cell { position: relative; background: #fff; cursor: crosshair; touch-action: none; }
+    .day-cell.today-column, .overview-cell.today-column { box-shadow: inset 0 0 0 999px rgba(13, 110, 253, .055); }
     .day-cell:hover { outline: 2px solid rgba(13, 110, 253, .35); outline-offset: -2px; z-index: 2; }
     .day-cell.read-only { cursor: default; }
     .day-cell.read-only:hover { outline: none; }
