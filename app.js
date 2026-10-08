@@ -18,6 +18,7 @@
       const NAME_MODE_KEY = 'planning-equipe-compact-names';
       const DAY_INITIALS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
       const monthLabel = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' });
+      const compactMonthLabel = new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric' });
       const longDate = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       const shortDate = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
       const exportDate = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -169,8 +170,19 @@
         calendar.style.setProperty('--days', dates.length);
         calendar.classList.toggle('compact-names', compactNames);
         calendar.replaceChildren();
-        monthPicker.textContent = monthLabel.format(displayedMonth);
+        monthPicker.textContent = compactMonthLabel.format(displayedMonth);
         nativeMonth.value = `${displayedMonth.getFullYear()}-${String(displayedMonth.getMonth() + 1).padStart(2, '0')}`;
+
+        const monthCorner = document.createElement('div');
+        monthCorner.className = 'month-band-corner sticky-name';
+        monthCorner.setAttribute('aria-hidden', 'true');
+        calendar.append(monthCorner);
+
+        const monthBand = document.createElement('div');
+        monthBand.className = 'calendar-month-band';
+        monthBand.style.gridColumn = `span ${dates.length}`;
+        monthBand.textContent = monthLabel.format(displayedMonth);
+        calendar.append(monthBand);
 
         const corner = document.createElement('div');
         corner.className = 'head-name sticky-name d-flex align-items-center';
