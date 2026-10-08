@@ -206,7 +206,7 @@
             const holiday = holidays.get(key);
             const dayEvents = eventsAt(member.id, key);
             const cell = document.createElement('div');
-            cell.className = `day-cell${member.special ? ' school-row-cell' : ''}${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${!active ? ' inactive' : ''}${!editable ? ' read-only' : ''}`;
+            cell.className = `day-cell${member.special ? ' school-row-cell' : ''}${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${key === todayKey ? ' today-column' : ''}${!active ? ' inactive' : ''}${!editable ? ' read-only' : ''}`;
             cell.dataset.memberId = member.id;
             cell.dataset.date = key;
             cell.setAttribute('aria-readonly', String(!editable));
@@ -285,7 +285,7 @@
               const holiday = holidays.get(key);
               const dayEvents = eventsAt(member.id, key);
               const cell = document.createElement('div');
-              cell.className = `overview-cell${member.special ? ' school-row-cell' : ''}${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${!memberIsActive(member, key) ? ' inactive' : ''}`;
+              cell.className = `overview-cell${member.special ? ' school-row-cell' : ''}${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${key === todayKey ? ' today-column' : ''}${!memberIsActive(member, key) ? ' inactive' : ''}`;
               cell.title = holiday ? `${longDate.format(date)} — ${holiday}` : longDate.format(date);
 
               const visibleEvents = dayEvents.some(event => event.portion === 'full')
