@@ -156,6 +156,24 @@
     .overview-cell .event-fill.am { top: 3px; height: calc(50% - 3px); }
     .overview-cell .event-fill.pm { bottom: 3px; height: calc(50% - 3px); }
 
+    @page { size: A4 landscape; margin: 8mm; }
+    @media print {
+      html, body { min-width: 0; background: #fff !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      body > main, body > #eventModal, body > .modal-backdrop, .overview-actions { display: none !important; }
+      #overviewModal { position: static !important; display: block !important; overflow: visible !important; width: auto !important; height: auto !important; }
+      #overviewModal .modal-dialog { width: auto !important; max-width: none !important; height: auto !important; margin: 0 !important; }
+      #overviewModal .modal-content { height: auto !important; border: 0 !important; box-shadow: none !important; }
+      #overviewModal .modal-header { padding: 0 0 5mm !important; border-bottom: 1px solid var(--line); }
+      #overviewModal .modal-body { overflow: visible !important; padding: 4mm 0 0 !important; background: #fff !important; }
+      .overview-month { break-inside: avoid; margin-bottom: 4mm !important; border-radius: 0; }
+      .overview-scroll { overflow: visible; }
+      .overview-grid { grid-template-columns: 125px repeat(var(--days), minmax(0, 1fr)); min-width: 0; }
+      .overview-corner, .overview-name { position: static; }
+      .overview-month-title { padding: .4rem .55rem; }
+      .overview-corner, .overview-day-head { height: 30px; }
+      .overview-name, .overview-cell { min-height: 27px; }
+    }
+
     @media (max-width: 900px) {
       .app-shell { margin: 0 !important; padding: 0 !important; }
       .card { border-radius: 0; }
@@ -248,10 +266,13 @@
       <div class="modal-content">
         <div class="modal-header">
           <div>
-            <h2 class="modal-title fs-5" id="overviewModalTitle">Vue d’ensemble · 6 mois</h2>
+            <h2 class="modal-title fs-5" id="overviewModalTitle">Vue d’ensemble · 6 mois — <span id="overviewExportDate"></span></h2>
             <div class="small text-secondary">À partir du mois affiché dans le planning</div>
           </div>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+          <div class="overview-actions d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-primary" id="printOverview">Exporter en PDF</button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+          </div>
         </div>
         <div class="modal-body overview-body p-3" id="overviewContent"></div>
       </div>
