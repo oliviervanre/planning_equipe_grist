@@ -41,7 +41,7 @@ Le champ `email` est essentiel : il permet d’identifier la personne connectée
 - Si une personne dispose de plusieurs adresses professionnelles, utiliser uniquement celle reconnue par Grist.
 - Ne pas saisir deux lignes pour une même personne.
 
-Exemple : si l’utilisateur est invité avec son adresse ANFSI `prenom.nom@interieur.gouv.fr`, cette même adresse doit être inscrite dans la colonne `email`.
+Exemple : si l’utilisateur est invité avec son adresse ANFSI `prenom.nom@anfsi.interieur.gouv.fr`, cette même adresse doit être inscrite dans la colonne `email`.
 
 ### Rôles
 
@@ -60,8 +60,8 @@ Les valeurs doivent être saisies exactement sous cette forme, en majuscules. Il
 
 | nom | email | role | actif | date_arrivee | date_depart |
 | --- | --- | --- | --- | --- | --- |
-| Responsable unité | responsable@interieur.gouv.fr | ADMINISTRATEUR | Oui |  |  |
-| Membre équipe | membre@interieur.gouv.fr | MEMBRE | Oui | 01/10/2026 |  |
+| Responsable unité | responsable.unite@anfsi.interieur.gouv.fr | ADMINISTRATEUR | Oui |  |  |
+| Membre équipe | membre.equipe@anfsi.interieur.gouv.fr | MEMBRE | Oui | 01/10/2026 |  |
 
 ## Invitation des utilisateurs dans Grist
 
@@ -106,20 +106,6 @@ Valeurs utilisées dans `portion` :
 Il est préférable de ne pas saisir directement les périodes dans cette table : le widget assure la cohérence des dates, des journées entières et des demi-journées.
 
 Pour les congés scolaires, le champ `utilisateur` reste vide et le type vaut `Congés scolaires`. Cette ligne est gérée depuis le planning par un administrateur.
-
-## Installation du widget dans un nouveau document
-
-Cette partie n’est utile que si le document modèle n’est pas utilisé.
-
-1. Créer les tables `Utilisateurs` et `Periodes` avec les colonnes décrites ci-dessus.
-2. Ajouter une page ou une section de type **Custom Widget Builder**.
-3. Copier le contenu de `index.html` dans la partie HTML du widget.
-4. Copier le contenu de `app.js` dans la partie JavaScript.
-5. Conserver les styles CSS dans `index.html` : aucun fichier CSS séparé n’est nécessaire.
-6. Autoriser le widget à accéder au document en lecture et en écriture lorsque Grist le demande.
-7. Configurer les règles ACL avant d’inviter les utilisateurs.
-
-Le widget dépend actuellement de l’API Grist et de Bootstrap chargés depuis les CDN indiqués dans `index.html`.
 
 ## Principes des règles d’accès
 
