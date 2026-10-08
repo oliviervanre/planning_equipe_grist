@@ -146,7 +146,7 @@
         if (member.end && member.end >= monthStart && member.end <= monthEnd) return `Départ le ${shortDate.format(fromIso(member.end))}`;
         if (member.start > monthEnd) return `Arrive le ${shortDate.format(fromIso(member.start))}`;
         if (member.end && member.end < monthStart) return `Parti le ${shortDate.format(fromIso(member.end))}`;
-        return 'Membre de l’équipe';
+        return '';
       }
 
       function renderTypeChoices() {
@@ -195,7 +195,8 @@
           const nameCell = document.createElement('div');
           nameCell.className = `person-name sticky-name${member.special ? ' school-row-name' : ''}`;
           const shownName = compactNames ? compactName(member.name) : member.name;
-          nameCell.innerHTML = `<span class="meta"><span class="name d-block" title="${member.name}">${shownName}</span><span class="membership">${membershipLabel(member)}</span></span>`;
+          const membership = membershipLabel(member);
+          nameCell.innerHTML = `<span class="meta"><span class="name d-block" title="${member.name}">${shownName}</span>${membership ? `<span class="membership">${membership}</span>` : ''}</span>`;
           calendar.append(nameCell);
 
           dates.forEach(date => {
