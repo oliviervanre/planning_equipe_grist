@@ -132,6 +132,8 @@
     .small-help { color: var(--muted); font-size: .75rem; }
 
     .overview-body { background: #f3f5f8; }
+    .overview-export-date { color: var(--muted); font-size: .82em; font-weight: 500; white-space: nowrap; }
+    .overview-actions { flex: 0 0 auto; margin-left: auto; }
     .overview-month { overflow: hidden; border: 1px solid var(--line); border-radius: .8rem; background: #fff; }
     .overview-month-title { margin: 0; padding: .65rem .85rem; border-bottom: 1px solid var(--line); font-size: .95rem; font-weight: 750; text-transform: capitalize; }
     .overview-scroll { overflow-x: auto; }
@@ -177,6 +179,10 @@
     @media (max-width: 900px) {
       .app-shell { margin: 0 !important; padding: 0 !important; }
       .card { border-radius: 0; }
+    }
+    @media (max-width: 680px) {
+      #overviewModal .modal-header { align-items: flex-start; }
+      .overview-actions { width: 100%; justify-content: flex-end; margin-left: 0; }
     }
   </style>
 </head>
@@ -264,14 +270,14 @@
   <div class="modal fade" id="overviewModal" tabindex="-1" aria-labelledby="overviewModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
       <div class="modal-content">
-        <div class="modal-header">
-          <div>
-            <h2 class="modal-title fs-5" id="overviewModalTitle">Vue d’ensemble · 6 mois — <span id="overviewExportDate"></span></h2>
+        <div class="modal-header flex-wrap gap-3">
+          <div class="me-auto">
+            <h2 class="modal-title fs-5" id="overviewModalTitle">Vue d’ensemble · 6 mois <span class="overview-export-date">— <span id="overviewExportDate"></span></span></h2>
             <div class="small text-secondary">À partir du mois affiché dans le planning</div>
           </div>
           <div class="overview-actions d-flex align-items-center gap-2">
             <button type="button" class="btn btn-outline-primary" id="printOverview">Exporter en PDF</button>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fermer</button>
           </div>
         </div>
         <div class="modal-body overview-body p-3" id="overviewContent"></div>
