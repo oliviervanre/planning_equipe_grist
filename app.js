@@ -20,6 +20,7 @@
       const monthLabel = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' });
       const longDate = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       const shortDate = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+      const exportDate = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
       const updateDateTime = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
 
       const DEMO_MEMBERS = [
@@ -236,6 +237,7 @@
 
       function renderOverview() {
         overviewContent.replaceChildren();
+        document.querySelector('#overviewExportDate').textContent = `éditée le ${exportDate.format(new Date())}`;
         const allMembers = [...members, SCHOOL_MEMBER];
         const todayKey = isoDate(new Date());
 
@@ -637,6 +639,7 @@
         renderOverview();
         overviewModal.show();
       });
+      document.querySelector('#printOverview').addEventListener('click', () => window.print());
       monthPicker.addEventListener('click', () => {
         if (typeof nativeMonth.showPicker === 'function') nativeMonth.showPicker();
         else nativeMonth.click();
