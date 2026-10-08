@@ -35,6 +35,7 @@ La table doit conserver le nom exact `Utilisateurs` et les identifiants de colon
 
 Le champ `email` est essentiel : il permet d’identifier la personne connectée et de l’autoriser à modifier sa propre ligne.
 
+- Les personnels peuvent s’authentifier à Grist avec leur carte professionnelle PN ou GN.
 - Saisir l’adresse professionnelle ANFSI utilisée lors de l’invitation dans Grist.
 - L’adresse doit correspondre à celle du compte avec lequel l’utilisateur se connecte à Grist.
 - Si une personne dispose de plusieurs adresses professionnelles, utiliser uniquement celle reconnue par Grist.
