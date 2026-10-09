@@ -43,6 +43,7 @@
         { id: uid(), memberId: 'u4', start: '2026-10-02', end: '2026-10-02', type: 'other', portion: 'am', comment: 'Rendez-vous' }
       ];
       let drag = null;
+      let touchTap = null;
       let modalState = null;
       let compactNames = localStorage.getItem(NAME_MODE_KEY) === 'true';
       let gristMode = false;
@@ -50,6 +51,7 @@
       let currentUserIsAdmin = false;
 
       const calendar = document.querySelector('#calendar');
+      const mobileLayout = window.matchMedia('(max-width: 680px)');
       const monthPicker = document.querySelector('#monthPicker');
       const nativeMonth = document.querySelector('#nativeMonth');
       const modalElement = document.querySelector('#eventModal');
@@ -167,8 +169,9 @@
         const dates = datesOfMonth();
         const holidays = holidaysFor(displayedMonth.getFullYear());
         const todayKey = isoDate(new Date());
+        const useCompactNames = compactNames || mobileLayout.matches;
         calendar.style.setProperty('--days', dates.length);
-        calendar.classList.toggle('compact-names', compactNames);
+        calendar.classList.toggle('compact-names', useCompactNames);
         calendar.replaceChildren();
         monthPicker.textContent = compactMonthLabel.format(displayedMonth);
         nativeMonth.value = `${displayedMonth.getFullYear()}-${String(displayedMonth.getMonth() + 1).padStart(2, '0')}`;
@@ -186,12 +189,17 @@
 
         const corner = document.createElement('div');
         corner.className = 'head-name sticky-name d-flex align-items-center';
-        corner.innerHTML = `<label class="name-mode-switch" title="Afficher les noms complets"><span>Équipe</span><input class="form-check-input" id="nameMode" type="checkbox" role="switch" ${compactNames ? '' : 'checked'}></label>`;
-        corner.querySelector('#nameMode').addEventListener('change', event => {
-          compactNames = !event.target.checked;
-          localStorage.setItem(NAME_MODE_KEY, String(compactNames));
-          render();
-        });
+        if (mobileLayout.matches) {
+          corner.textContent = 'Équipe';
+          corner.title = 'Affichage compact sur smartphone';
+        } else {
+          corner.innerHTML = `<label class="name-mode-switch" title="Afficher les noms complets"><span>Équipe</span><input class="form-check-input" id="nameMode" type="checkbox" role="switch" ${compactNames ? '' : 'checked'}></label>`;
+          corner.querySelector('#nameMode').addEventListener('change', event => {
+            compactNames = !event.target.checked;
+            localStorage.setItem(NAME_MODE_KEY, String(compactNames));
+            render();
+          });
+        }
         calendar.append(corner);
 
         dates.forEach(date => {
@@ -207,7 +215,7 @@
         [...members, SCHOOL_MEMBER].forEach(member => {
           const nameCell = document.createElement('div');
           nameCell.className = `person-name sticky-name${member.special ? ' school-row-name' : ''}`;
-          const shownName = compactNames ? compactName(member.name) : member.name;
+          const shownName = useCompactNames ? compactName(member.name) : member.name;
           const membership = membershipLabel(member);
           nameCell.innerHTML = `<span class="meta"><span class="name d-block" title="${member.name}">${shownName}</span>${membership ? `<span class="membership">${membership}</span>` : ''}</span>`;
           calendar.append(nameCell);
@@ -330,12 +338,10 @@
         return document.querySelector('input[name="eventType"]:checked').value;
       }
 
-      function beginDrag(cell, event) {
-        if (!cell || cell.classList.contains('inactive') || cell.classList.contains('read-only') || event.button !== 0) return;
-        event.preventDefault();
+      function startSelection(cell, clickedId = null) {
+        if (!cell || cell.classList.contains('inactive') || cell.classList.contains('read-only')) return false;
         const isSchoolRow = cell.dataset.memberId === SCHOOL_ROW_ID;
         const selectedPortion = isSchoolRow ? 'full' : document.querySelector('#portion').value;
-        const clickedId = event.target.closest('.event-fill')?.dataset.eventId || null;
         const clickedEvent = clickedId ? events.find(item => item.id === clickedId) : null;
         const existing = clickedEvent || eventForPortion(cell.dataset.memberId, cell.dataset.date, selectedPortion);
         drag = {
@@ -348,6 +354,31 @@
           existingId: existing?.id || null
         };
         paintPending();
+        return true;
+      }
+
+      function beginDrag(cell, event) {
+        if (event.pointerType === 'touch' || event.button !== 0) return;
+        const clickedId = event.target.closest('.event-fill')?.dataset.eventId || null;
+        if (!startSelection(cell, clickedId)) return;
+        event.preventDefault();
+      }
+
+      function beginTouchTap(cell, event) {
+        if (!event.isPrimary || !cell || cell.classList.contains('inactive') || cell.classList.contains('read-only')) return;
+        touchTap = {
+          pointerId: event.pointerId,
+          cell,
+          clickedId: event.target.closest('.event-fill')?.dataset.eventId || null,
+          x: event.clientX,
+          y: event.clientY,
+          moved: false
+        };
+      }
+
+      function trackTouchTap(event) {
+        if (!touchTap || event.pointerId !== touchTap.pointerId) return;
+        if (Math.hypot(event.clientX - touchTap.x, event.clientY - touchTap.y) > 10) touchTap.moved = true;
       }
 
       function moveDrag(cell) {
@@ -401,6 +432,27 @@
           return;
         }
         openCreateModal(action.memberId, start, end, action.portion);
+      }
+
+      async function finishPointer(event) {
+        if (event.pointerType !== 'touch') {
+          await finishDrag();
+          return;
+        }
+        if (!touchTap || event.pointerId !== touchTap.pointerId) return;
+        const tap = touchTap;
+        touchTap = null;
+        const moved = tap.moved || Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 10;
+        if (!moved && startSelection(tap.cell, tap.clickedId)) await finishDrag();
+      }
+
+      function cancelPointer(event) {
+        if (event.pointerType === 'touch') {
+          if (touchTap?.pointerId === event.pointerId) touchTap = null;
+          return;
+        }
+        drag = null;
+        document.querySelectorAll('.day-cell.pending').forEach(cell => cell.classList.remove('pending'));
       }
 
       function eraseRange(memberId, start, end, portion = null) {
@@ -627,12 +679,22 @@
         document.querySelector('#dataStatus').textContent = `Mise à jour le ${updateDateTime.format(new Date())}`;
       }
 
-      calendar.addEventListener('pointerdown', event => beginDrag(event.target.closest('.day-cell'), event));
+      calendar.addEventListener('pointerdown', event => {
+        const cell = event.target.closest('.day-cell');
+        if (event.pointerType === 'touch') beginTouchTap(cell, event);
+        else beginDrag(cell, event);
+      });
       calendar.addEventListener('pointermove', event => {
+        if (event.pointerType === 'touch') {
+          trackTouchTap(event);
+          return;
+        }
         if (!drag) return;
         moveDrag(document.elementFromPoint(event.clientX, event.clientY)?.closest('.day-cell'));
       });
-      window.addEventListener('pointerup', finishDrag);
+      window.addEventListener('pointerup', event => { void finishPointer(event); });
+      window.addEventListener('pointercancel', cancelPointer);
+      mobileLayout.addEventListener?.('change', render);
 
       document.querySelector('#previousMonth').addEventListener('click', () => {
         displayedMonth = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() - 1, 1);
