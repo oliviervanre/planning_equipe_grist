@@ -139,6 +139,14 @@ Il est possible de déclarer deux situations différentes le même jour, par exe
 - Cliquer sur une période colorée pour ouvrir sa fiche, modifier son type ou son commentaire, ou la supprimer.
 - Cliquer-glisser sur une partie déjà colorée pour l’effacer.
 
+### Utilisation sur smartphone
+
+- Faire glisser le doigt horizontalement ou verticalement pour parcourir le planning.
+- Appuyer brièvement sur une case de sa propre ligne pour saisir une situation sur cette date.
+- Appuyer sur une période colorée pour la modifier ou la supprimer.
+- La sélection par glissement est réservée à la souris afin d’éviter une saisie accidentelle pendant le défilement tactile.
+- La colonne des noms est automatiquement affichée en version compacte sur un petit écran.
+
 ### Navigation
 
 - Les flèches permettent de passer au mois précédent ou suivant.
