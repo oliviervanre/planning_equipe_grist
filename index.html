@@ -57,7 +57,11 @@
     }
     .type-dot { width: .72rem; height: .72rem; border-radius: 50%; background: var(--type-color); }
 
-    .calendar-scroll { overflow-x: auto; }
+    .calendar-scroll {
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      -webkit-overflow-scrolling: touch;
+    }
     .calendar-grid {
       display: grid;
       grid-template-columns: var(--name-width) repeat(var(--days), minmax(var(--day-width), 1fr));
@@ -193,12 +197,32 @@
     }
 
     @media (max-width: 900px) {
+      body { min-width: 0; }
       .app-shell { margin: 0 !important; padding: 0 !important; }
       .card { border-radius: 0; }
     }
     @media (max-width: 680px) {
+      .toolbar { padding: 1rem !important; }
+      .month-controls { width: 100%; flex-wrap: wrap; }
+      .month-controls .month-title { flex: 1 1 140px; min-width: 0; }
+      .settings-row > div { width: 100%; min-width: 0; }
+      #typeChoices {
+        flex-wrap: nowrap !important;
+        max-width: 100%;
+        overflow-x: auto;
+        padding: 2px 2px 7px;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+      }
+      #typeChoices .type-choice { flex: 0 0 auto; }
+      .desktop-help { display: none; }
+      .touch-help { display: block !important; }
       #overviewModal .modal-header { align-items: flex-start; }
       .overview-actions { width: 100%; justify-content: flex-end; margin-left: 0; }
+    }
+    @media (hover: none) and (pointer: coarse) {
+      .day-cell { cursor: default; touch-action: pan-x pan-y; }
+      .day-cell:hover { outline: none; }
     }
   </style>
 </head>
@@ -211,7 +235,7 @@
             <h1 class="h4 mb-1">Planning d’équipe</h1>
             <p class="text-secondary mb-0" id="dataStatus">Présences, absences et situations générales de l’équipe.</p>
           </div>
-          <div class="d-flex align-items-center gap-2">
+          <div class="d-flex align-items-center gap-2 month-controls">
             <button class="btn btn-outline-secondary" id="previousMonth" type="button" aria-label="Mois précédent">‹</button>
             <button class="btn btn-light month-title fw-bold" id="monthPicker" type="button"></button>
             <button class="btn btn-outline-secondary" id="nextMonth" type="button" aria-label="Mois suivant">›</button>
@@ -220,7 +244,7 @@
           </div>
         </div>
 
-        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mt-4">
+        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mt-4 settings-row">
           <div>
             <div class="small text-secondary fw-semibold mb-2">Situation à appliquer</div>
             <div class="d-flex flex-wrap gap-2" id="typeChoices"></div>
@@ -246,7 +270,8 @@
           <span class="d-inline-flex align-items-center gap-2"><span class="legend-sample holiday"></span>Jour férié</span>
           <span class="d-inline-flex align-items-center gap-2"><span class="legend-sample" style="background:#ffd400"></span>Congés scolaires</span>
         </div>
-        <div class="small-help">Cliquer-glisser pour ajouter · Repasser sur une période pour l’effacer · Cliquer sur une case colorée pour la modifier</div>
+        <div class="small-help desktop-help">Cliquer-glisser pour ajouter · Repasser sur une période pour l’effacer · Cliquer sur une case colorée pour la modifier</div>
+        <div class="small-help touch-help d-none">Faire glisser pour parcourir le calendrier · Appuyer sur une case pour saisir ou modifier</div>
       </footer>
     </section>
   </main>
