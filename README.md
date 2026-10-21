@@ -152,6 +152,7 @@ Il est possible de déclarer deux situations différentes le même jour, par exe
 - Les flèches permettent de passer au mois précédent ou suivant.
 - Un clic sur le mois permet de choisir directement un autre mois.
 - Le bouton **Aujourd’hui** revient au mois courant.
+- Le bouton **Actualiser** relit les données du planning depuis Grist sans recharger toute la page.
 - Le bouton **Vue d’ensemble** affiche six mois à partir du mois sélectionné.
 - Dans cette vue, le bouton **Exporter en PDF** ouvre l’impression en format paysage ; la date d’édition figure dans l’en-tête.
 - Le commutateur **Équipe** permet d’afficher les noms complets ou une version compacte laissant davantage de largeur aux jours.
