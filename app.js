@@ -48,11 +48,13 @@
       let compactNames = localStorage.getItem(NAME_MODE_KEY) === 'true';
       let gristMode = false;
       let writeInProgress = false;
+      let refreshInProgress = false;
       let currentUserIsAdmin = false;
 
       const calendar = document.querySelector('#calendar');
       const mobileLayout = window.matchMedia('(max-width: 680px)');
       const monthPicker = document.querySelector('#monthPicker');
+      const refreshButton = document.querySelector('#refreshData');
       const nativeMonth = document.querySelector('#nativeMonth');
       const modalElement = document.querySelector('#eventModal');
       const eventModal = new bootstrap.Modal(modalElement);
@@ -679,6 +681,25 @@
         document.querySelector('#dataStatus').textContent = `Mise à jour le ${updateDateTime.format(new Date())}`;
       }
 
+      async function refreshData() {
+        if (!gristMode || refreshInProgress || writeInProgress) return;
+        refreshInProgress = true;
+        refreshButton.disabled = true;
+        refreshButton.textContent = 'Actualisation…';
+        document.querySelector('#dataStatus').textContent = 'Actualisation des données…';
+        try {
+          await loadDataFromGrist();
+          render();
+        } catch (error) {
+          console.error(error);
+          document.querySelector('#dataStatus').textContent = `Actualisation impossible : ${error.message}`;
+        } finally {
+          refreshInProgress = false;
+          refreshButton.disabled = false;
+          refreshButton.textContent = 'Actualiser';
+        }
+      }
+
       calendar.addEventListener('pointerdown', event => {
         const cell = event.target.closest('.day-cell');
         if (event.pointerType === 'touch') beginTouchTap(cell, event);
@@ -714,6 +735,7 @@
         overviewModal.show();
       });
       document.querySelector('#printOverview').addEventListener('click', () => window.print());
+      refreshButton.addEventListener('click', refreshData);
       monthPicker.addEventListener('click', () => {
         if (typeof nativeMonth.showPicker === 'function') nativeMonth.showPicker();
         else nativeMonth.click();
@@ -739,6 +761,7 @@
         try {
           const params = new URLSearchParams(window.location.search);
           gristMode = typeof globalThis.grist !== 'undefined' && params.has('access');
+          refreshButton.classList.toggle('d-none', !gristMode);
           if (gristMode) {
             grist.ready({ requiredAccess: 'full' });
             await loadDataFromGrist();
