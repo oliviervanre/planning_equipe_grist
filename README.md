@@ -75,6 +75,8 @@ Après avoir rempli la table `Utilisateurs` :
 
 Un utilisateur absent de la table, inactif ou connecté avec une autre adresse ne pourra pas gérer sa ligne.
 
+Lors de sa première ouverture, Grist peut demander à l’utilisateur d’autoriser le widget à accéder aux données du document. Cette autorisation doit être acceptée pour charger le planning. Elle reste soumise au rôle Grist et aux règles ACL de l’utilisateur. Sans cette autorisation, le widget affiche un message explicite et ne présente aucune donnée fictive.
+
 ## Table Periodes
 
 La table `Periodes` contient les données enregistrées par le widget. Elle doit conserver les identifiants de colonnes suivants :
