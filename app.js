@@ -760,10 +760,19 @@
         renderTypeChoices();
         try {
           const params = new URLSearchParams(window.location.search);
-          gristMode = typeof globalThis.grist !== 'undefined' && params.has('access');
-          refreshButton.classList.toggle('d-none', !gristMode);
+          const embeddedInGrist = window.self !== window.top && typeof globalThis.grist !== 'undefined';
+          const accessLevel = params.get('access');
+          gristMode = embeddedInGrist;
+          refreshButton.classList.toggle('d-none', !gristMode || accessLevel !== 'full');
           if (gristMode) {
             grist.ready({ requiredAccess: 'full' });
+            if (accessLevel !== 'full') {
+              members = [];
+              events = [];
+              calendar.replaceChildren();
+              document.querySelector('#dataStatus').textContent = 'Autorisez l’accès aux données Grist pour charger le planning.';
+              return;
+            }
             await loadDataFromGrist();
           } else {
             loadLocal();
