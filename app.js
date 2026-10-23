@@ -761,6 +761,7 @@
         try {
           const params = new URLSearchParams(window.location.search);
           const embeddedInGrist = window.self !== window.top && typeof globalThis.grist !== 'undefined';
+          const demoMode = !embeddedInGrist && params.get('demo') === '1';
           const accessLevel = params.get('access');
           gristMode = embeddedInGrist;
           refreshButton.classList.toggle('d-none', !gristMode || accessLevel !== 'full');
@@ -774,8 +775,15 @@
               return;
             }
             await loadDataFromGrist();
-          } else {
+          } else if (demoMode) {
             loadLocal();
+          } else {
+            members = [];
+            events = [];
+            calendar.replaceChildren();
+            document.querySelector('#dataStatus').textContent =
+              'Ouvrez cette page dans Grist ou ajoutez ?demo=1 pour utiliser le mode démonstration.';
+            return;
           }
         } catch (error) {
           console.error(error);
