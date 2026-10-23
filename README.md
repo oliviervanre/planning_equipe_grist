@@ -180,3 +180,9 @@ La ligne `Congés scolaires` est toujours placée en bas du planning. Seul un ad
 - Ne pas modifier directement les références de la table `Periodes` sauf correction exceptionnelle.
 - Les commentaires doivent rester adaptés à un planning partagé : éviter d’y inscrire des informations médicales ou personnelles sensibles.
 - Avant une évolution importante, effectuer une copie du document Grist.
+
+## Mode démonstration local
+
+Pour afficher les données fictives lors d’un test local, ajouter explicitement `?demo=1` à l’adresse de la page, par exemple `http://localhost:8000/?demo=1`.
+
+Sans ce paramètre, une ouverture hors de Grist affiche uniquement une indication d’utilisation. Dans Grist, les données fictives ne sont jamais chargées, avec ou sans paramètre de démonstration.
