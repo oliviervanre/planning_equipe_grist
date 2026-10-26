@@ -1,4 +1,4 @@
-# Planning d’équipe pour Grist
+# Planning des présences pour Grist
 
 Ce widget fournit une vue mensuelle simple des présences et absences d’une équipe. Il permet de déclarer des congés, prévisions de congé, journées de télétravail, formations et autres situations, pour une journée entière ou une demi-journée.
 
@@ -26,7 +26,7 @@ La table doit conserver le nom exact `Utilisateurs` et les identifiants de colon
 | --- | --- | --- |
 | `nom` | Texte | Nom affiché dans le planning |
 | `email` | Texte | Adresse utilisée par la personne pour accéder à Grist |
-| `role` | Choix ou texte | `ADMINISTRATEUR` ou `MEMBRE` |
+| `role` | Choix ou texte | `ADMINISTRATEUR`, `MEMBRE` ou `LECTURE_SEULE` |
 | `actif` | Case à cocher | Cochée si la personne doit apparaître dans le planning |
 | `date_arrivee` | Date | Facultative ; premier jour de présence dans l’équipe |
 | `date_depart` | Date | Facultative ; dernier jour de présence dans l’équipe |
@@ -48,8 +48,9 @@ Exemple : si l’utilisateur est invité avec son adresse ANFSI `prenom.nom@anfs
 
 - `ADMINISTRATEUR` : peut gérer toutes les lignes et renseigner les congés scolaires.
 - `MEMBRE` : peut consulter l’ensemble du planning, mais ne peut modifier que sa propre ligne.
+- `LECTURE_SEULE` : peut consulter l’ensemble du planning sans pouvoir le modifier ; son compte n’apparaît pas comme une ligne du calendrier.
 
-Les valeurs doivent être saisies exactement sous cette forme, en majuscules. Il est recommandé de désigner au moins un administrateur.
+Les valeurs doivent être saisies exactement sous cette forme, en majuscules. Il est recommandé de désigner au moins un administrateur. Un compte `LECTURE_SEULE` peut rester actif : son rôle suffit à l’exclure de l’affichage du calendrier.
 
 Dans le planning, les administrateurs sont présentés en premier, puis les membres. Chaque groupe est classé alphabétiquement d’après le nom extrait de l’adresse `prenom.nom@domaine`. Le contenu affiché reste celui de la colonne `nom`.
 
