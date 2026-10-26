@@ -50,6 +50,7 @@
       let writeInProgress = false;
       let refreshInProgress = false;
       let currentUserIsAdmin = false;
+      let currentUserIsReadOnly = false;
 
       const calendar = document.querySelector('#calendar');
       const mobileLayout = window.matchMedia('(max-width: 680px)');
@@ -146,6 +147,10 @@
 
       function isAdministrator(member) {
         return String(member.role || '').trim().toUpperCase() === 'ADMINISTRATEUR';
+      }
+
+      function isReadOnly(member) {
+        return String(member.role || '').trim().toUpperCase() === 'LECTURE_SEULE';
       }
 
       function surnameFromEmail(member) {
@@ -676,12 +681,13 @@
           .sort(compareTeamMembers);
 
         if (!loadedUsers.length) throw new Error('La table Utilisateurs ne contient aucun membre nommé.');
-        currentUserIsAdmin = loadedUsers.some(member => member.email && member.role === 'ADMINISTRATEUR');
+        currentUserIsAdmin = loadedUsers.some(member => member.email && isAdministrator(member));
+        currentUserIsReadOnly = !currentUserIsAdmin && loadedUsers.some(member => member.email && isReadOnly(member));
         members = loadedUsers
-          .filter(member => member.active)
+          .filter(member => member.active && !isReadOnly(member))
           .map(member => ({
             ...member,
-            canEdit: currentUserIsAdmin || Boolean(member.email)
+            canEdit: !currentUserIsReadOnly && (currentUserIsAdmin || Boolean(member.email))
           }));
         const validMemberIds = new Set(members.map(member => member.id));
         events = rowsFromTable(periodsTable)
@@ -700,7 +706,7 @@
             };
           })
           .filter(event => (event.memberId === SCHOOL_ROW_ID || validMemberIds.has(event.memberId)) && event.start && event.end);
-        document.querySelector('#dataStatus').textContent = `Mise à jour le ${updateDateTime.format(new Date())}`;
+        document.querySelector('#dataStatus').textContent = `Mise à jour le ${updateDateTime.format(new Date())}${currentUserIsReadOnly ? ' — lecture seule' : ''}`;
       }
 
       async function refreshData() {
