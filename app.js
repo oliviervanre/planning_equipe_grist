@@ -144,6 +144,22 @@
         return `${parts[0][0].toUpperCase()}. ${parts.at(-1)}`;
       }
 
+      function isAdministrator(member) {
+        return String(member.role || '').trim().toUpperCase() === 'ADMINISTRATEUR';
+      }
+
+      function surnameFromEmail(member) {
+        const match = String(member.email || '').trim().match(/^[^.@]+\.([^@]+)@/);
+        return (match?.[1] || member.name || '').trim();
+      }
+
+      function compareTeamMembers(first, second) {
+        const roleOrder = Number(!isAdministrator(first)) - Number(!isAdministrator(second));
+        if (roleOrder) return roleOrder;
+        const surnameOrder = surnameFromEmail(first).localeCompare(surnameFromEmail(second), 'fr', { sensitivity: 'base' });
+        return surnameOrder || first.name.localeCompare(second.name, 'fr', { sensitivity: 'base' });
+      }
+
       function membershipLabel(member) {
         if (member.special) return 'Saisie administrateur';
         const monthStart = isoDate(displayedMonth);
@@ -214,9 +230,12 @@
           calendar.append(head);
         });
 
-        [...members, SCHOOL_MEMBER].forEach(member => {
+        const firstRegularMember = members.findIndex(member => !isAdministrator(member));
+        const separateResponsibles = firstRegularMember > 0;
+        [...members, SCHOOL_MEMBER].forEach((member, memberIndex) => {
+          const startsRegularMembers = !member.special && separateResponsibles && memberIndex === firstRegularMember;
           const nameCell = document.createElement('div');
-          nameCell.className = `person-name sticky-name${member.special ? ' school-row-name' : ''}`;
+          nameCell.className = `person-name sticky-name${member.special ? ' school-row-name' : ''}${startsRegularMembers ? ' team-group-start' : ''}`;
           const shownName = useCompactNames ? compactName(member.name) : member.name;
           const membership = membershipLabel(member);
           nameCell.innerHTML = `<span class="meta"><span class="name d-block" title="${member.name}">${shownName}</span>${membership ? `<span class="membership">${membership}</span>` : ''}</span>`;
@@ -229,7 +248,7 @@
             const holiday = holidays.get(key);
             const dayEvents = eventsAt(member.id, key);
             const cell = document.createElement('div');
-            cell.className = `day-cell${member.special ? ' school-row-cell' : ''}${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${key === todayKey ? ' today-column' : ''}${!active ? ' inactive' : ''}${!editable ? ' read-only' : ''}`;
+            cell.className = `day-cell${member.special ? ' school-row-cell' : ''}${startsRegularMembers ? ' team-group-start' : ''}${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${key === todayKey ? ' today-column' : ''}${!active ? ' inactive' : ''}${!editable ? ' read-only' : ''}`;
             cell.dataset.memberId = member.id;
             cell.dataset.date = key;
             cell.setAttribute('aria-readonly', String(!editable));
@@ -261,6 +280,8 @@
         overviewContent.replaceChildren();
         document.querySelector('#overviewExportDate').textContent = `éditée le ${exportDate.format(new Date())}`;
         const allMembers = [...members, SCHOOL_MEMBER];
+        const firstRegularMember = members.findIndex(member => !isAdministrator(member));
+        const separateResponsibles = firstRegularMember > 0;
         const todayKey = isoDate(new Date());
 
         for (let offset = 0; offset < 6; offset += 1) {
@@ -297,9 +318,10 @@
             grid.append(head);
           });
 
-          allMembers.forEach(member => {
+          allMembers.forEach((member, memberIndex) => {
+            const startsRegularMembers = !member.special && separateResponsibles && memberIndex === firstRegularMember;
             const nameCell = document.createElement('div');
-            nameCell.className = `overview-name${member.special ? ' school-row-name' : ''}`;
+            nameCell.className = `overview-name${member.special ? ' school-row-name' : ''}${startsRegularMembers ? ' team-group-start' : ''}`;
             nameCell.textContent = member.name;
             nameCell.title = member.name;
             grid.append(nameCell);
@@ -309,7 +331,7 @@
               const holiday = holidays.get(key);
               const dayEvents = eventsAt(member.id, key);
               const cell = document.createElement('div');
-              cell.className = `overview-cell${member.special ? ' school-row-cell' : ''}${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${key === todayKey ? ' today-column' : ''}${!memberIsActive(member, key) ? ' inactive' : ''}`;
+              cell.className = `overview-cell${member.special ? ' school-row-cell' : ''}${startsRegularMembers ? ' team-group-start' : ''}${[0, 6].includes(date.getDay()) ? ' weekend' : ''}${holiday ? ' holiday' : ''}${key === todayKey ? ' today-column' : ''}${!memberIsActive(member, key) ? ' inactive' : ''}`;
               cell.title = holiday ? `${longDate.format(date)} — ${holiday}` : longDate.format(date);
 
               const visibleEvents = dayEvents.some(event => event.portion === 'full')
@@ -651,7 +673,7 @@
             order: Number(row.ordre) || 9999,
             canEdit: false
           }))
-          .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'fr'));
+          .sort(compareTeamMembers);
 
         if (!loadedUsers.length) throw new Error('La table Utilisateurs ne contient aucun membre nommé.');
         currentUserIsAdmin = loadedUsers.some(member => member.email && member.role === 'ADMINISTRATEUR');
