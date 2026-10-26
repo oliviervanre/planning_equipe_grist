@@ -30,6 +30,7 @@ La table doit conserver le nom exact `Utilisateurs` et les identifiants de colon
 | `actif` | Case à cocher | Cochée si la personne doit apparaître dans le planning |
 | `date_arrivee` | Date | Facultative ; premier jour de présence dans l’équipe |
 | `date_depart` | Date | Facultative ; dernier jour de présence dans l’équipe |
+| `ordre` | Numérique | Conservée pour compatibilité ; n’est plus utilisée pour classer l’équipe |
 
 ### Adresse électronique
 
@@ -49,6 +50,8 @@ Exemple : si l’utilisateur est invité avec son adresse ANFSI `prenom.nom@anfs
 - `MEMBRE` : peut consulter l’ensemble du planning, mais ne peut modifier que sa propre ligne.
 
 Les valeurs doivent être saisies exactement sous cette forme, en majuscules. Il est recommandé de désigner au moins un administrateur.
+
+Dans le planning, les administrateurs sont présentés en premier, puis les membres. Chaque groupe est classé alphabétiquement d’après le nom extrait de l’adresse `prenom.nom@domaine`. Le contenu affiché reste celui de la colonne `nom`.
 
 ### Membres actifs, arrivées et départs
 
