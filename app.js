@@ -1,7 +1,7 @@
     (() => {
       'use strict';
 
-      const APP_VERSION = '1.0.3';
+      const APP_VERSION = '1.0.4';
       const APP_VERSION_DATE = '27/10/2026';
       const TYPES = {
         plannedLeave: { label: 'Prévision congé', color: '#9fc5ed' },
@@ -686,8 +686,10 @@
           .sort(compareTeamMembers);
 
         if (!loadedUsers.length) throw new Error('La table Utilisateurs ne contient aucun membre nommé.');
-        currentUserIsAdmin = loadedUsers.some(member => member.email && isAdministrator(member));
-        currentUserIsReadOnly = !currentUserIsAdmin && loadedUsers.some(member => member.email && isReadOnly(member));
+        currentUserIsAdmin = loadedUsers.some(member => member.email && member.active && isAdministrator(member));
+        const currentUserRow = currentUserIsAdmin ? null : loadedUsers.find(member => member.email);
+        currentUserIsReadOnly = !currentUserIsAdmin &&
+          (!currentUserRow || !currentUserRow.active || isReadOnly(currentUserRow));
         members = loadedUsers
           .filter(member => member.active && !isReadOnly(member))
           .map(member => ({
