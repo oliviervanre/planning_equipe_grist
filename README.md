@@ -27,7 +27,7 @@ La table doit conserver le nom exact `Utilisateurs` et les identifiants de colon
 | `nom` | Texte | Nom affiché dans le planning |
 | `email` | Texte | Adresse utilisée par la personne pour accéder à Grist |
 | `role` | Choix ou texte | `ADMINISTRATEUR`, `MEMBRE` ou `LECTURE_SEULE` |
-| `actif` | Case à cocher | Cochée si la personne doit apparaître dans le planning |
+| `actif` | Case à cocher | Cochée si la personne doit apparaître et disposer de ses droits dans le planning |
 | `date_arrivee` | Date | Facultative ; premier jour de présence dans l’équipe |
 | `date_depart` | Date | Facultative ; dernier jour de présence dans l’équipe |
 | `ordre` | Numérique | Conservée pour compatibilité ; n’est plus utilisée pour classer l’équipe |
@@ -50,13 +50,13 @@ Exemple : si l’utilisateur est invité avec son adresse ANFSI `prenom.nom@anfs
 - `MEMBRE` : peut consulter l’ensemble du planning, mais ne peut modifier que sa propre ligne.
 - `LECTURE_SEULE` : peut consulter l’ensemble du planning sans pouvoir le modifier ; son compte n’apparaît pas comme une ligne du calendrier.
 
-Les valeurs doivent être saisies exactement sous cette forme, en majuscules. Il est recommandé de désigner au moins un administrateur. Un compte `LECTURE_SEULE` peut rester actif : son rôle suffit à l’exclure de l’affichage du calendrier.
+Les valeurs doivent être saisies exactement sous cette forme, en majuscules. Il est recommandé de désigner au moins un administrateur. Un compte `LECTURE_SEULE` peut rester actif : son rôle suffit à l’exclure de l’affichage du calendrier. Un profil inactif ne dispose d’aucun droit de modification, même si son rôle est `ADMINISTRATEUR`.
 
 Dans le planning, les administrateurs sont présentés en premier, puis les membres. Chaque groupe est classé alphabétiquement d’après le nom extrait de l’adresse `prenom.nom@domaine`. Le contenu affiché reste celui de la colonne `nom`.
 
 ### Membres actifs, arrivées et départs
 
-- Une personne dont la case `actif` est décochée n’apparaît plus dans le planning. Ses anciennes périodes restent présentes dans la table `Periodes`.
+- Une personne dont la case `actif` est décochée n’apparaît plus dans le planning et ne peut plus le modifier, même si son rôle est `ADMINISTRATEUR`. Elle peut encore le consulter si elle conserve un accès au document. Ses anciennes périodes restent présentes dans la table `Periodes`.
 - `date_arrivee` et `date_depart` sont facultatives. Elles peuvent rester vides si ces dates ne sont pas connues.
 - Lorsqu’elles sont renseignées, les jours antérieurs à l’arrivée ou postérieurs au départ sont rendus inactifs dans le planning.
 
@@ -121,12 +121,13 @@ Elles reposent sur l’adresse du compte connecté et sur la table `Utilisateurs
 
 - un attribut utilisateur `Profil` recherche dans `Utilisateurs` la ligne dont `email` correspond à `user.Email` ;
 - tous les utilisateurs autorisés peuvent consulter le planning ;
-- un membre peut créer, modifier ou supprimer uniquement les périodes rattachées à son propre profil ;
-- un administrateur peut gérer toutes les périodes ;
+- seuls les profils actifs disposent de droits d’écriture ;
+- un membre actif peut créer, modifier ou supprimer uniquement les périodes rattachées à son propre profil ;
+- un administrateur actif peut gérer toutes les périodes ;
 - seuls les administrateurs peuvent gérer la ligne `Congés scolaires` ;
 - les adresses électroniques des autres membres ne sont pas exposées inutilement.
 
-Après toute modification des ACL, tester au minimum avec un compte administrateur et un compte membre.
+Après toute modification des ACL, tester au minimum avec un administrateur actif, un membre actif et un administrateur inactif.
 
 ## Utilisation du planning
 
