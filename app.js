@@ -56,6 +56,7 @@
       const mobileLayout = window.matchMedia('(max-width: 680px)');
       const monthPicker = document.querySelector('#monthPicker');
       const refreshButton = document.querySelector('#refreshData');
+      const userGreeting = document.querySelector('#userGreeting');
       const nativeMonth = document.querySelector('#nativeMonth');
       const modalElement = document.querySelector('#eventModal');
       const eventModal = new bootstrap.Modal(modalElement);
@@ -143,6 +144,38 @@
         const parts = name.trim().split(/\s+/);
         if (parts.length < 2) return name;
         return `${parts[0][0].toUpperCase()}. ${parts.at(-1)}`;
+      }
+
+      function formatUserName(value) {
+        return String(value || '')
+          .normalize('NFC')
+          .trim()
+          .replace(/[._]+/g, ' ')
+          .toLocaleLowerCase('fr-FR')
+          .replace(/(^|[\s'’-])\p{L}/gu, part => part.toLocaleUpperCase('fr-FR'));
+      }
+
+      async function loadUserGreeting() {
+        try {
+          const tokenInfo = await grist.docApi.getAccessToken({ readOnly: true });
+          const profileUrl = new URL(tokenInfo.baseUrl);
+          const apiMarker = '/api/docs/';
+          const markerIndex = profileUrl.pathname.indexOf(apiMarker);
+          if (markerIndex < 0) return;
+          profileUrl.pathname = `${profileUrl.pathname.slice(0, markerIndex)}/api/profile/user`;
+          profileUrl.search = '';
+          profileUrl.hash = '';
+
+          const response = await fetch(profileUrl, { credentials: 'include' });
+          if (!response.ok) return;
+          const profile = await response.json();
+          const name = formatUserName(profile.name);
+          if (!name) return;
+          userGreeting.textContent = `Bonjour, ${name}`;
+          userGreeting.classList.remove('d-none');
+        } catch (error) {
+          console.warn('Profil Grist indisponible pour le message d’accueil.', error);
+        }
       }
 
       function isAdministrator(member) {
@@ -803,6 +836,7 @@
               return;
             }
             await loadDataFromGrist();
+            void loadUserGreeting();
           } else if (demoMode) {
             loadLocal();
           } else {
