@@ -1,6 +1,8 @@
     (() => {
       'use strict';
 
+      const APP_VERSION = '1.0';
+      const APP_VERSION_DATE = '27/10/2026';
       const TYPES = {
         plannedLeave: { label: 'Prévision congé', color: '#9fc5ed' },
         leave:        { label: 'Congé',           color: '#2878d0' },
@@ -57,11 +59,14 @@
       const monthPicker = document.querySelector('#monthPicker');
       const refreshButton = document.querySelector('#refreshData');
       const userGreeting = document.querySelector('#userGreeting');
+      const appVersion = document.querySelector('#appVersion');
       const nativeMonth = document.querySelector('#nativeMonth');
       const modalElement = document.querySelector('#eventModal');
       const eventModal = new bootstrap.Modal(modalElement);
       const overviewModal = new bootstrap.Modal(document.querySelector('#overviewModal'));
       const overviewContent = document.querySelector('#overviewContent');
+
+      appVersion.textContent = `Version ${APP_VERSION} — ${APP_VERSION_DATE}`;
 
       function uid() {
         return globalThis.crypto?.randomUUID?.() || `e-${Date.now()}-${Math.random().toString(16).slice(2)}`;
