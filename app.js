@@ -53,6 +53,7 @@
       let refreshInProgress = false;
       let currentUserIsAdmin = false;
       let currentUserIsReadOnly = false;
+      let greetingFallback = '';
 
       const calendar = document.querySelector('#calendar');
       const mobileLayout = window.matchMedia('(max-width: 680px)');
@@ -734,7 +735,7 @@
         currentUserIsReadOnly = !currentUserIsAdmin && loadedUsers.some(member => member.email && isReadOnly(member));
         const visibleIdentityRows = loadedUsers.filter(member => member.email);
         const administratorRows = loadedUsers.filter(isAdministrator);
-        const greetingFallback = currentUserIsAdmin
+        greetingFallback = currentUserIsAdmin
           ? (administratorRows.length === 1 ? administratorRows[0].name : '')
           : (visibleIdentityRows.length === 1 ? visibleIdentityRows[0].name : '');
         members = loadedUsers
