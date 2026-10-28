@@ -1,8 +1,8 @@
     (() => {
       'use strict';
 
-      const APP_VERSION = '1.0.4';
-      const APP_VERSION_DATE = '27/10/2026';
+      const APP_VERSION = '1.0.5';
+      const APP_VERSION_DATE = '28/10/2026';
       const TYPES = {
         plannedLeave: { label: 'Prévision congé', color: '#9fc5ed' },
         leave:        { label: 'Congé',           color: '#2878d0' },
