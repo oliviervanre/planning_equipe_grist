@@ -8,11 +8,13 @@ Chaque membre gère uniquement sa propre ligne. Un administrateur peut gérer l�
 
 Le moyen le plus simple de diffuser l’outil consiste à transmettre une copie du document Grist déjà configuré :
 
-1. Télécharger le document Grist sans son historique.
-2. Transmettre le fichier au responsable de l’unité.
-3. Le responsable importe ce fichier dans son espace Grist.
-4. Il renseigne la table `Utilisateurs` avec les membres de son équipe.
-5. Il invite individuellement ces personnes dans le document Grist.
+1. Se placer sur la vue du planning.
+2. Ouvrir l’icône **Gérer les utilisateurs**.
+3. Cliquer sur **Télécharger le document** et choisir, si l’option est proposée, le téléchargement sans historique.
+4. Transmettre le fichier au responsable de l’unité.
+5. Le responsable importe ce fichier dans son espace Grist.
+6. Il renseigne la table `Utilisateurs` avec les membres de son équipe.
+7. Il invite individuellement ces personnes dans le document Grist.
 
 La copie conserve les tables, le widget et les règles d’accès. Il ne faut donc pas recréer le document ni modifier les règles ACL pour une utilisation courante.
 
